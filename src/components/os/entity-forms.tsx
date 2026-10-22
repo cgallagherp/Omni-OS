@@ -1,6 +1,6 @@
 "use client";
 import type * as React from "react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
@@ -102,7 +102,8 @@ export interface ActionDefaults {
 }
 
 export function ActionDialog({ trigger, action, crew, priorities, issues = [], defaults = {}, title = "Assign action", submitLabel = "Assign action" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; priorities: Option[]; issues?: Option[]; defaults?: ActionDefaults; title?: string; submitLabel?: string }) {
-  const due = defaults.due_date ?? new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const [inAWeek] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+  const due = defaults.due_date ?? inAWeek;
   return (
     <FormDialog trigger={trigger} title={title} description="Every action has one owner and a deadline." action={action} submitLabel={submitLabel}>
       {(e) => (

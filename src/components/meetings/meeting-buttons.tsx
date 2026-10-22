@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { Play } from "lucide-react";
 import { toast } from "sonner";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, NativeSelect } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
@@ -54,9 +54,11 @@ export function StartNowButton({ companyId, slug, type = "weekly", label = "Star
 }
 
 export function ScheduleMeetingDialog({ companyId, crew, trigger }: { companyId: string; crew: CrewOption[]; trigger: React.ReactNode }) {
-  const nextWeek = new Date(Date.now() + 7 * 86400000);
-  nextWeek.setHours(9, 0, 0, 0);
-  const local = new Date(nextWeek.getTime() - nextWeek.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const [local] = useState(() => {
+    const nextWeek = new Date(Date.now() + 7 * 86400000);
+    nextWeek.setHours(9, 0, 0, 0);
+    return new Date(nextWeek.getTime() - nextWeek.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  });
   return (
     <FormDialog trigger={trigger} title="Schedule a meeting" action={(fd) => scheduleMeeting(companyId, fd)} submitLabel="Schedule">
       {(e) => (

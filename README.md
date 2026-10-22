@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Omni OS
 
-## Getting Started
+The Omni Operating System as software: a multi-company operating platform for Omni portfolio companies (North Star, Flight Plan, Scoreboard, Rhythm, Crew, Quarterly Reset) and a portfolio view for Omni's investment and operating teams.
 
-First, run the development server:
+> **Demonstration data:** the seed creates two fictional companies (Clinara — B2B vertical SaaS; Kestrel Compliance Services — tech-enabled services). They are flagged `is_demo` and every screen showing them carries a banner.
 
+## Prerequisites
+- Node 20+ (tested on 22), npm
+- Docker (for local Supabase)
+
+## Run locally
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local          # then paste keys from `npx supabase status`
+npx supabase start -x realtime,storage-api,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
+npm run db:reset                    # migrations + demo seed
+npm run dev                         # http://localhost:3000
+```
+Sign in with any demo account (password `OmniDemo!2026`) — the login page lists them in demo mode:
+
+| Account | Role | Sees |
+|---|---|---|
+| priya@omni.demo | Omni operating partner | Both companies + portfolio, confidential notes |
+| tom@omni.demo | Omni investment director | Clinara only (explicit assignment) |
+| sam@omni.demo | Platform administrator | Everything + administration |
+| daniel@clinara.demo / sarah@kestrel.demo | Company admin (CEO) | Own company |
+| marcus@clinara.demo, aisha@…, nadia@kestrel.demo … | Executive | Own company |
+| helen@clinara.demo | Read-only observer (chair) | Own company, no edits |
+
+## Tests
+```bash
+npm run lint && npm run typecheck
+npm test                     # unit + tenant-isolation integration tests (reseeds local DB)
+PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e   # full workflow in a browser (reseeds)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deploying (Vercel + Supabase)
+1. Create a Supabase project; run `npx supabase link` then `npx supabase db push` to apply `supabase/migrations`.
+2. In Vercel set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only), `NEXT_PUBLIC_DEMO_MODE=false` for production, optional `ANTHROPIC_API_KEY`.
+3. Do **not** seed demo data into production. (`npm run db:seed` refuses non-local URLs unless `SEED_ALLOW_REMOTE=true`.)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Deployment has not been performed from this environment (no Vercel/Supabase cloud credentials). See `docs/decisions.md`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Docs
+- `docs/product-spec.md` — what the product does
+- `docs/architecture.md` — routes, data model, security model
+- `docs/implementation-plan.md` — milestones and status
+- `docs/decisions.md` — decision log and known limitations
