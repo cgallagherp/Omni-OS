@@ -90,3 +90,14 @@ export function initials(name: string): string {
 export function todayISO(now = new Date()): string {
   return now.toISOString().slice(0, 10);
 }
+
+/** "≥ £2.2m", "≤ 4.0", or "78–88%" for range metrics. */
+export function targetLabel(
+  m: { direction: string; unit: MetricUnit; decimals: number; target_min: number | null; target_max: number | null },
+  target: number | null,
+  currency: string,
+) {
+  if (m.direction === "range") return `${formatMetric(m.target_min, m.unit, { decimals: m.decimals, currency })}–${formatMetric(m.target_max, m.unit, { decimals: m.decimals, currency })}`;
+  if (target === null) return "No target";
+  return `${m.direction === "lower_is_better" ? "≤" : "≥"} ${formatMetric(target, m.unit, { decimals: m.decimals, currency })}`;
+}

@@ -122,7 +122,7 @@ export async function loadCompanySnapshots(supabase: Supabase, companyIds: strin
     const flow = (key: string) => {
       const view = metricViews.find((v) => v.metric.comparable_key === key);
       if (!view) return { summary: null, metric: null };
-      return { summary: ytd(view.points, fyStart, view.metric.target_value), metric: view.metric };
+      return { summary: ytd(view.points.map((p) => ({ period_start: p.period, value: p.value, target: p.target })), fyStart, view.metric.target_value), metric: view.metric };
     };
     const revenue = flow("revenue");
     const ebitda = flow("ebitda");
