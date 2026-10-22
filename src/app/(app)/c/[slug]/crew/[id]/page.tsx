@@ -80,7 +80,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
         )}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Accountabilities</CardTitle>

@@ -230,3 +230,24 @@
 .org-tree > .org-ul > .org-li::after {
   display: none;
 }
+
+@media print {
+  aside,
+  header,
+  .print\:hidden {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .print-page-break {
+    break-before: page;
+  }
+  .print-avoid-break {
+    break-inside: avoid;
+  }
+}

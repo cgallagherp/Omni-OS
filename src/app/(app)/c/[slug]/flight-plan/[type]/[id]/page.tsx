@@ -214,7 +214,7 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
         </Cell>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
+      <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-[1fr_380px]">
         <div className="space-y-5">
           {type === "winning_move" && (
             <Card>

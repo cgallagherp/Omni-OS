@@ -147,7 +147,7 @@ export default async function MetricPage({ params }: { params: Promise<{ slug: s
         {ytdSummary ? <Stat label="Year to date vs plan" value={fmt(ytdSummary.actual)} sub={`${formatPct(ytdSummary.variancePct, 1, true)} vs ${fmt(ytdSummary.plan)}`} /> : <Stat label="Tolerance" value={`${Number(m.tolerance_pct)}%`} sub="before off track" />}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_340px]">
+      <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-[1fr_340px]">
         <div className="space-y-5">
           <Card>
             <CardHeader>

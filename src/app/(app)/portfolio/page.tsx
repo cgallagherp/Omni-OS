@@ -59,7 +59,7 @@ export default async function PortfolioPage() {
             <Tile label="Escalated to Omni" value={String(escalations.length)} sub={`${snaps.reduce((n, s) => n + s.openIssues.filter((i) => i.priority === "critical").length, 0)} critical issues open`} />
           </div>
 
-          <div className="grid gap-5 xl:grid-cols-2">
+          <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-2">
             {rows.map(({ s, health, note, ic }) => {
               const rev = s.financials.revenue;
               const eb = s.financials.ebitda;
@@ -148,7 +148,7 @@ export default async function PortfolioPage() {
             })}
           </div>
 
-          <div className="mt-5 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+          <div className="mt-5 grid gap-5 [&>*]:min-w-0 lg:grid-cols-[1.4fr_1fr]">
             <Card>
               <CardHeader>
                 <CardTitle>Escalated to Omni</CardTitle>

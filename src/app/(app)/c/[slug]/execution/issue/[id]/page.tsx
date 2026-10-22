@@ -94,7 +94,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
         </div>
       )}
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_380px]">
+      <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-[1fr_380px]">
         <div className="space-y-5">
           <Card>
             <CardHeader>

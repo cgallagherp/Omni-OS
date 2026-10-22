@@ -132,7 +132,7 @@ export default async function CrewPage({ params }: { params: Promise<{ slug: str
         </table>
       </Card>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-3">
         {(["hire", "capability", "development"] as const).map((type) => {
           const list = (gaps ?? []).filter((g) => g.type === type);
           return (

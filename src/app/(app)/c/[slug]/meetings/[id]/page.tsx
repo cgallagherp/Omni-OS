@@ -139,7 +139,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ slug: 
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+      <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-[1fr_300px]">
         <div className="space-y-5">
           <Card>
             <CardHeader>

@@ -35,7 +35,7 @@ export default async function AdminPage() {
         description="Portfolio companies, Omni team access and onboarding templates."
         actions={<NewCompanyDialog trigger={<Button size="sm"><Building2 /> Onboard company</Button>} />}
       />
-      <div className="grid gap-5 xl:grid-cols-[1.3fr_1fr]">
+      <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-[1.3fr_1fr]">
         <Card className="overflow-x-auto">
           <CardHeader>
             <CardTitle>Omni team access</CardTitle>

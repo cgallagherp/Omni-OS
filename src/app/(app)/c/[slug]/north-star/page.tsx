@@ -123,7 +123,7 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
       ) : (
         <div className="space-y-5">
           <Card className="overflow-hidden">
-            <div className="grid lg:grid-cols-[1.3fr_1fr]">
+            <div className="grid [&>*]:min-w-0 lg:grid-cols-[1.3fr_1fr]">
               <div className="space-y-4 p-6 lg:border-r">
                 <Block label="Purpose" text={ns.purpose} />
                 <Block label="Vision" text={ns.vision} large />
@@ -149,7 +149,7 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
             </div>
           </Card>
 
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Exit equity story</CardTitle>
@@ -244,7 +244,7 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
             </CardContent>
           </Card>
 
-          <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+          <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-[1fr_380px]">
             <Card>
               <CardHeader>
                 <CardTitle>Supporting Winning Moves</CardTitle>

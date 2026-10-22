@@ -71,6 +71,9 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button asChild variant="ghost" size="sm">
+            <Link href={`${base}/report`}>Board pack</Link>
+          </Button>
           {s.nextMeeting && (
             <Button asChild variant={s.nextMeeting.status === "in_progress" ? "brand" : "outline"} size="sm">
               <Link href={`${base}/meetings/${s.nextMeeting.id}`}>
@@ -153,7 +156,7 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
       {/* North Star */}
       {ns && (
         <Card className="overflow-hidden">
-          <div className="grid lg:grid-cols-[1.4fr_1fr]">
+          <div className="grid [&>*]:min-w-0 lg:grid-cols-[1.4fr_1fr]">
             <div className="border-b p-5 lg:border-r lg:border-b-0">
               <div className="flex items-center justify-between">
                 <p className="text-[11px] font-semibold tracking-[0.08em] text-brand uppercase">North Star</p>
@@ -208,7 +211,7 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
         </div>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
+      <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-[1.5fr_1fr]">
         {/* 90-day commitments */}
         <Card>
           <CardHeader>
@@ -266,7 +269,7 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
         </Card>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-3">
         {/* Issues */}
         <Card className="xl:col-span-1">
           <CardHeader>
