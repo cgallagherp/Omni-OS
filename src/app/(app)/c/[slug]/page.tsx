@@ -16,6 +16,7 @@ import { Owner } from "@/components/os/avatar";
 import { MetricCard, TrendIcon, targetLabel } from "@/components/os/metric-card";
 import { PriorityBadge, StatusBadge, StatusBar, StatusDot } from "@/components/os/status";
 import { cn } from "@/lib/utils";
+import { OmniPanel } from "@/components/portfolio/omni-panel";
 
 export const metadata: Metadata = { title: "Blueprint" };
 
@@ -353,6 +354,8 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
           </CardContent>
         </Card>
       </div>
+
+      {ctx.can.omni && <OmniPanel supabase={ctx.supabase} companyId={ctx.company.companyId} currency={cur} />}
 
       {s.exceptions.length > 0 && (
         <p className="text-center text-xs text-muted-foreground">

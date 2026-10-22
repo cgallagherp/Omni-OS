@@ -1,4 +1,5 @@
 import "server-only";
+import { executionHealth } from "@/lib/domain/health";
 import type { Supabase } from "@/lib/supabase/server";
 import { buildMetricView, isException, summariseStatuses, type MetricView } from "@/lib/domain/metric-view";
 import { fiscalYearOf, fiscalYearStart, toISODate, ytd, type YtdSummary } from "@/lib/domain/metrics";
@@ -180,4 +181,19 @@ export function rankPriority(p: Issue["priority"]): number {
 export async function loadCompanySnapshot(supabase: Supabase, companyId: string, now = new Date()) {
   const [snap] = await loadCompanySnapshots(supabase, [companyId], now);
   return snap ?? null;
+}
+
+
+/** Execution health for a snapshot (see domain/health.ts for the method). */
+export function healthOf(s: CompanySnapshot) {
+  return executionHealth({
+    revenueVariance: s.financials.revenue?.variancePct ?? null,
+    ebitdaVariance: s.financials.ebitda?.variancePct ?? null,
+    priorities: { onTrack: s.priorityStatus.on_track, atRisk: s.priorityStatus.at_risk, offTrack: s.priorityStatus.off_track, done: s.priorityStatus.done, total: s.priorities.length },
+    kpis: { onTrack: s.kpi.on_track, atRisk: s.kpi.at_risk, offTrack: s.kpi.off_track, withData: s.kpi.total - s.kpi.no_data },
+    weeklyMeetingsLast4Weeks: s.meetingsLast4Weeks,
+    openActions: s.openActions.length,
+    overdueActions: s.overdueActions.length,
+    criticalIssues: s.openIssues.filter((i) => i.priority === "critical").length,
+  });
 }

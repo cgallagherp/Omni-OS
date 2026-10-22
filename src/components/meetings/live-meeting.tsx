@@ -306,7 +306,7 @@ function KpiSection({ companyId, meetingId, bundle, crewById, crew, options, can
         const issue = openIssueByMetric.get(m.id);
         const changed = snap.value !== m.rawValue;
         return (
-          <div key={item.id} className={cn("grid gap-3 p-4 md:grid-cols-[1fr_160px_auto]", item.reviewed && "bg-muted/30")}>
+          <div key={item.id} data-testid={`kpi-row-${m.name}`} className={cn("grid gap-3 p-4 md:grid-cols-[1fr_160px_auto]", item.reviewed && "bg-muted/30")}>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{m.name}</span>
@@ -502,7 +502,7 @@ function IssuesSection({ companyId, meetingId, bundle, crewById, crew, options, 
         const decisions = bundle.decisions.filter((d) => d.issue_id === issue.id);
         const actions = bundle.newActions.filter((a) => a.issue_id === issue.id);
         return (
-          <div key={item.id} className={cn("overflow-hidden rounded-lg border bg-card transition-shadow", expanded && "shadow-sm ring-1 ring-foreground/10", resolved && "opacity-70")}>
+          <div key={item.id} data-testid={`issue-${issue.title}`} className={cn("overflow-hidden rounded-lg border bg-card transition-shadow", expanded && "shadow-sm ring-1 ring-foreground/10", resolved && "opacity-70")}>
             <button onClick={() => setOpenId(expanded ? null : item.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left">
               <ChevronRight className={cn("size-4 shrink-0 text-muted-foreground transition-transform", expanded && "rotate-90")} />
               <span className={cn("min-w-0 flex-1 font-medium", resolved && "line-through")}>{issue.title}</span>
