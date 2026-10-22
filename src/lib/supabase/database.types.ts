@@ -889,7 +889,9 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "approve_quarterly_reset":
+{ Args: { "p_reset_id": string,"p_snapshot": Json }; Returns: undefined
+                           }
           }
           Enums: {
             "action_status": "open"|"done"|"cancelled","company_role": "omni"|"company_admin"|"executive"|"observer","gap_status": "open"|"in_progress"|"closed","gap_type": "hire"|"capability"|"development","issue_priority": "critical"|"high"|"medium"|"low","issue_status": "open"|"in_discussion"|"resolved","meeting_status": "scheduled"|"in_progress"|"completed","meeting_type": "weekly"|"monthly"|"quarterly"|"annual","metric_category": "financial"|"commercial"|"operational"|"customer"|"people","metric_direction": "higher_is_better"|"lower_is_better"|"range","metric_frequency": "weekly"|"monthly","metric_unit": "currency"|"percent"|"number"|"days"|"ratio"|"score","platform_role": "platform_admin"|"omni_team","quarter_status": "planning"|"active"|"closed","rag_status": "on_track"|"at_risk"|"off_track"|"done"|"missed"|"not_started"

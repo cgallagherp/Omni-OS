@@ -164,3 +164,69 @@
     }
   }
 }
+
+/* Accountability chart connectors */
+.org-tree .org-ul {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 20px;
+}
+.org-tree .org-ul .org-ul::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 20px;
+  border-left: 1px solid var(--border);
+}
+.org-tree .org-li {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 6px 0;
+}
+.org-tree .org-li::before,
+.org-tree .org-li::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 20px;
+  border-top: 1px solid var(--border);
+}
+.org-tree .org-li::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid var(--border);
+}
+.org-tree .org-li:only-child::before,
+.org-tree .org-li:only-child::after {
+  display: none;
+}
+.org-tree .org-li:only-child {
+  padding-top: 0;
+}
+.org-tree .org-li:first-child::before,
+.org-tree .org-li:last-child::after {
+  border: 0 none;
+}
+.org-tree .org-li:last-child::before {
+  border-right: 1px solid var(--border);
+  border-top-right-radius: 6px;
+}
+.org-tree .org-li:first-child::after {
+  border-top-left-radius: 6px;
+}
+.org-tree > .org-ul {
+  padding-top: 0;
+}
+.org-tree > .org-ul > .org-li {
+  padding-top: 0;
+}
+.org-tree > .org-ul > .org-li::before,
+.org-tree > .org-ul > .org-li::after {
+  display: none;
+}
