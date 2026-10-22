@@ -28,7 +28,14 @@ There is no separate API server. Reads happen in server components via `loadComp
 | `/c/[slug]/meetings/[id]` | Agenda preview → live meeting → permanent summary |
 | `/c/[slug]/execution` | Actions / issues / decision log |
 | `/c/[slug]/execution/issue/[id]` | Issue detail: strategic context, decisions, actions, meetings |
-| `/c/[slug]/crew`, `/quarterly-reset`, `/assistant`, `/settings`, `/admin` | See implementation plan for status |
+| `/c/[slug]/crew`, `/crew/[id]` | Accountability chart, ownership matrix, person commitments, hires / capability / development |
+| `/c/[slug]/quarterly-reset` | Guided reset; approval via `approve_quarterly_reset()` (SQL, security invoker, atomic) |
+| `/c/[slug]/assistant` | Operating analyst: rule-based analyses with source references; optional Claude narrative |
+| `/c/[slug]/report` | Printable monthly board pack |
+| `/c/[slug]/settings` | Company profile, Winning Move limit, members & roles (company admins) |
+| `/admin` | Platform admin: Omni assignment matrix, template-based onboarding |
+
+`/c/[slug]/layout.tsx` resolves access before any company page streams, so unauthorised slugs return a real 404.
 
 ## Data model (all company tables carry `company_id`)
 ```
@@ -67,6 +74,12 @@ SQL helpers (`app.*`, security definer, always about `auth.uid()`) back the RLS 
 - `metric-view.ts` — per-metric view: latest, status history, deterioration, "not reported", exception flag.
 - `agenda.ts` — weekly/monthly agenda generation (KPI exceptions → priorities → previous actions → issues → decisions → new actions); carry-over flags.
 - `health.ts` — transparent execution score for portfolio ranking.
+
+## AI assistant
+`src/lib/data/insights.ts` builds a **brief** from the RLS-scoped snapshot: facts (each with source ids that link to records) and rule-based suggestions, labelled separately. With `ANTHROPIC_API_KEY` set, `src/lib/actions/assistant.ts` sends only that brief to Claude (`claude-opus-5-5` by default, `ANTHROPIC_MODEL` to override; server-side refusal fallback enabled) with instructions to cite `[S#]` for every fact and keep recommendations in a separate section. Omni-only tables are never read by the brief, so tenant and confidentiality boundaries carry through.
+
+## Service role usage
+Only `provisionUser()` in `src/lib/actions/admin.ts` (creating/inviting auth users) after a platform-admin or company-admin check. Everything else uses the user's session.
 
 ## Integrations (future)
 `metric_values.source` (`manual | csv | integration | seed`) and `metrics.source` let connectors write the same model the UI and CSV import use.

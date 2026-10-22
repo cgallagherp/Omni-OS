@@ -14,3 +14,7 @@
 | 10 | Brand accent comes from `NEXT_PUBLIC_BRAND_PRIMARY` (placeholder `#F26A21`); logo is a placeholder mark. | No official Omni brand assets were supplied. |
 | 11 | Next.js `cacheComponents` disabled. | Every page is per-user and permission-scoped; dynamic rendering is simpler and safer. |
 | 12 | Deployment to Vercel/Supabase cloud not performed. | No credentials in this environment; README documents the steps. |
+| 13 | The assistant is "analysis first, AI second": deterministic facts with source references are always available; Claude only narrates over that brief. | Guarantees traceability (every fact links to a record), works without an API key, and keeps the model away from data the user can't see. |
+| 14 | Quarterly reset approval marks unfinished priorities as *missed*; carried-forward work is a new linked priority in the next quarter. | Preserves an honest record of each quarter's results while keeping continuity (`carried_from_id`). |
+| 15 | Owners of new users: demo mode creates a temporary password shown once; otherwise Supabase sends an invite email. | No SMTP in the local sandbox; production path uses Supabase's invitation flow. |
+| 16 | Meeting participants' screens refresh on their own actions (server actions + `router.refresh`), not via realtime. | Supabase Realtime was excluded locally; acceptable for a single facilitator driving the boardroom screen. |
