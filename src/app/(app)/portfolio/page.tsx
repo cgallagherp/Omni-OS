@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowRight, CalendarClock, Flag } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, Flag, Mail } from "lucide-react";
 import { requireViewer } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { healthOf, loadCompanySnapshots } from "@/lib/data/snapshot";
+import { attentionOf, healthOf, loadCompanySnapshots, northStarProgress } from "@/lib/data/snapshot";
+import { REPORT_META, REPORT_STATE } from "@/lib/domain/reporting";
+import { weekStartOf } from "@/lib/domain/weekly-scorecard";
+import { ScorecardStatusPill } from "@/components/scorecard/scorecard-table";
+import { Progress } from "@/components/ui/progress";
 import { formatDate, formatMoney, formatPct, relativeDays } from "@/lib/domain/format";
 import { BAND_META } from "@/lib/domain/health";
 import { quarterLabel } from "@/lib/domain/quarters";
@@ -12,7 +16,7 @@ import { PageHeader, EmptyState } from "@/components/os/page";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CompanyMark } from "@/components/os/logo";
-import { PriorityBadge, StatusBar } from "@/components/os/status";
+import { PriorityBadge, StatusBar, StatusDot } from "@/components/os/status";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Portfolio" };
@@ -35,13 +39,17 @@ export default async function PortfolioPage() {
   const tot = (k: "revenue" | "ebitda", f: "actual" | "plan") => snaps.reduce((sum, s) => sum + (s.financials[k]?.[f] ?? 0), 0);
   const escalations = snaps.flatMap((s) => s.openIssues.filter((i) => i.escalated_to_omni).map((i) => ({ i, s })));
   const currency = snaps[0]?.company.currency ?? "GBP";
+  const logoOf = new Map(viewer.companies.map((c) => [c.companyId, c.branding.logoUrl]));
+  const thisWeek = weekStartOf(new Date());
+  // The most recent approved Monday scorecard for each company (in-app delivery to Omni).
+  const scorecards = snaps.map((s) => ({ s, latest: s.sentScorecards.find((w) => w.approved_at) ?? null }));
 
   return (
     <div className="fade-in">
       <PageHeader
         eyebrow="Omni Portfolio"
         title="Portfolio overview"
-        description={`Execution across ${snaps.length} authorised portfolio compan${snaps.length === 1 ? "y" : "ies"}, ordered by who needs attention first.`}
+        description={`Execution across ${snaps.length} authorised portfolio compan${snaps.length === 1 ? "y" : "ies"}, ordered by who needs attention first. Monday scorecards from each CEO are shown first.`}
         actions={
           <Link href="/portfolio/compare" className="inline-flex h-8 items-center gap-1.5 rounded-md border bg-card px-3 text-sm font-medium shadow-xs hover:bg-accent">
             Compare companies <ArrowRight className="size-3.5" />
@@ -59,16 +67,78 @@ export default async function PortfolioPage() {
             <Tile label="Escalated to Omni" value={String(escalations.length)} sub={`${snaps.reduce((n, s) => n + s.openIssues.filter((i) => i.priority === "critical").length, 0)} critical issues open`} />
           </div>
 
+          <Card className="mb-5" data-testid="portfolio-scorecards">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-1.5">
+                <Mail className="size-3.5 text-muted-foreground" /> Monday KPI scorecards
+              </CardTitle>
+              <span className="text-xs text-muted-foreground">Approved by each CEO · off-track KPIs and their corrective actions</span>
+            </CardHeader>
+            <div className="divide-y">
+              {scorecards.map(({ s, latest }) => {
+                const off = latest?.rows.filter((r) => r.status === "off_track") ?? [];
+                const current = latest?.week_start === thisWeek;
+                return (
+                  <div key={s.company.id} className="grid gap-3 px-4 py-3 lg:grid-cols-[220px_1fr]">
+                    <Link href={`/c/${s.company.slug}/weekly-scorecard`} className="flex items-start gap-2.5 hover:underline">
+                      <CompanyMark name={s.company.name} color={s.company.brand_color} logoUrl={logoOf.get(s.company.id)} size="md" />
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13.5px] font-medium">{s.company.name}</span>
+                        <span className={cn("block text-xs", current ? "text-muted-foreground" : "text-risk-ink")}>
+                          {latest ? `${current ? "This week" : `Week of ${formatDate(latest.week_start, { year: false })}`} · approved ${formatDate(latest.approved_at, { year: false })}` : "No scorecard received"}
+                          {latest && !current && " · this week not yet received"}
+                        </span>
+                        {latest && (
+                          <span className="mt-1 flex gap-1 text-[11px] text-muted-foreground">
+                            {latest.rows.filter((r) => r.status === "on_track").length} on · {latest.rows.filter((r) => r.status === "at_risk").length} at risk · {off.length} off · {latest.rows.filter((r) => r.status === "not_reported").length} not reported
+                          </span>
+                        )}
+                      </span>
+                    </Link>
+                    <ul className="space-y-1.5 text-[13px]">
+                      {off.map((r) => (
+                        <li key={r.metricId} className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:gap-3">
+                          <span className="flex shrink-0 items-center gap-2 sm:w-64">
+                            <ScorecardStatusPill status={r.status} />
+                            <span className="truncate font-medium">{r.kpi}</span>
+                          </span>
+                          <span className="text-xs text-muted-foreground tabular sm:w-32">
+                            {r.actual} vs {r.target}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            {r.actionRequired ? (
+                              <span className="font-medium text-off-ink">Action required — no corrective action agreed.</span>
+                            ) : (
+                              r.actions.map((a) => (
+                                <span key={a.id} className="block">
+                                  {a.title} <span className="text-muted-foreground">— {a.owner}, {a.dueLabel}</span>
+                                </span>
+                              ))
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                      {latest && !off.length && <li className="text-muted-foreground">No KPIs off track.</li>}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
           <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-2">
             {rows.map(({ s, health, note, ic }) => {
               const rev = s.financials.revenue;
               const eb = s.financials.ebitda;
               const ps = s.priorityStatus;
               const band = BAND_META[health.band];
+              const nsp = northStarProgress(s);
+              const attention = attentionOf(s);
+              const orgOverdue = s.orgActions.filter((o) => o.target_date && o.target_date < s.now.toISOString().slice(0, 10)).length;
               return (
                 <Card key={s.company.id} className="overflow-hidden">
                   <Link href={`/c/${s.company.slug}`} className="flex items-center gap-3 border-b px-4 py-3 hover:bg-accent/40">
-                    <CompanyMark name={s.company.name} color={s.company.brand_color} size="md" />
+                    <CompanyMark name={s.company.name} color={s.company.brand_color} logoUrl={logoOf.get(s.company.id)} size="md" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{s.company.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
@@ -86,7 +156,7 @@ export default async function PortfolioPage() {
                     <div className="px-4 py-3">
                       <p className="text-[11px] text-muted-foreground">Priorities {s.activeQuarter ? quarterLabel(s.activeQuarter) : ""}</p>
                       <p className="mt-0.5 text-sm font-semibold tabular">
-                        <span className="text-on">{ps.on_track + ps.done}</span> / <span className="text-risk">{ps.at_risk}</span> / <span className="text-off">{ps.off_track}</span>
+                        <span className="text-on-ink">{ps.on_track + ps.done}</span> / <span className="text-risk-ink">{ps.at_risk}</span> / <span className="text-off-ink">{ps.off_track}</span>
                       </p>
                       <StatusBar counts={{ on: ps.on_track, done: ps.done, risk: ps.at_risk, off: ps.off_track }} className="mt-1" />
                     </div>
@@ -98,14 +168,45 @@ export default async function PortfolioPage() {
                       <StatusBar counts={{ on: s.kpi.on_track, risk: s.kpi.at_risk, off: s.kpi.off_track, none: s.kpi.no_data }} className="mt-1" />
                     </div>
                   </div>
+                  <div className="grid gap-4 border-b px-4 py-3 sm:grid-cols-[200px_1fr]">
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">North Star{nsp.targetYear ? ` · FY${nsp.targetYear}` : ""}</p>
+                      {nsp.revenue !== null || nsp.ebitda !== null ? (
+                        <div className="space-y-1.5 text-[11.5px] text-muted-foreground">
+                          <div>
+                            Revenue journey {nsp.revenue !== null ? `${Math.round(nsp.revenue * 100)}%` : "—"}
+                            <Progress value={(nsp.revenue ?? 0) * 100} tone="brand" className="mt-0.5 h-1" />
+                          </div>
+                          <div>
+                            EBITDA journey {nsp.ebitda !== null ? `${Math.round(nsp.ebitda * 100)}%` : "—"}
+                            <Progress value={(nsp.ebitda ?? 0) * 100} tone="brand" className="mt-0.5 h-1" />
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[12.5px] text-muted-foreground">{s.northStar?.vision ? "Less than 12 months of results" : "North Star not yet agreed"}</p>
+                      )}
+                    </div>
+                    <div>
+                      <p className="mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Current 90-day priorities</p>
+                      <ul className="space-y-1">
+                        {s.priorities.map((p) => (
+                          <li key={p.id} className="flex min-w-0 items-center gap-2 text-[13px]">
+                            <StatusDot status={p.status} />
+                            <span className="min-w-0 truncate">{p.title}</span>
+                          </li>
+                        ))}
+                        {!s.priorities.length && <li className="text-[13px] text-muted-foreground">No priorities agreed yet.</li>}
+                      </ul>
+                    </div>
+                  </div>
                   <div className="grid gap-4 px-4 py-3 sm:grid-cols-[1fr_200px]">
                     <div>
-                      <p className="mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Requires escalation</p>
+                      <p className="mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Matters needing Omni support</p>
                       <ul className="space-y-1.5">
                         {s.escalatedIssues.slice(0, 3).map((i) => (
                           <li key={i.id}>
                             <Link href={`/c/${s.company.slug}/execution/issue/${i.id}`} className="flex items-start gap-2 text-[13px] hover:underline">
-                              <AlertTriangle className={cn("mt-0.5 size-3.5 shrink-0", i.priority === "critical" ? "text-off" : "text-risk")} />
+                              <AlertTriangle className={cn("mt-0.5 size-3.5 shrink-0", i.priority === "critical" ? "text-off-ink" : "text-risk-ink")} />
                               <span className="line-clamp-1">{i.title}</span>
                             </Link>
                           </li>
@@ -113,20 +214,32 @@ export default async function PortfolioPage() {
                         {!s.escalatedIssues.length && <li className="text-[13px] text-muted-foreground">No critical or escalated issues.</li>}
                       </ul>
                       <p className="mt-2 text-xs text-muted-foreground">
-                        Top KPI exceptions: {s.exceptions.filter((e) => e.status === "off_track").slice(0, 3).map((e) => e.metric.name).join(", ") || "none"}
+                        {attention.items.length} item{attention.items.length === 1 ? "" : "s"} need attention this week · KPI exceptions: {s.exceptions.filter((e) => e.status === "off_track").slice(0, 3).map((e) => e.metric.name).join(", ") || "none"}
                       </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {s.reporting.map((r) => (
+                          <Badge key={`${r.kind}${r.periodStart}`} variant={REPORT_STATE[r.state].variant} title={`${REPORT_META[r.kind].label} · ${r.periodLabel}`}>
+                            {REPORT_META[r.kind].short} {r.periodLabel}: {REPORT_STATE[r.state].label.toLowerCase()}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                     <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-[12.5px]">
                       <dt className="text-muted-foreground">Overdue actions</dt>
-                      <dd className={cn("text-right tabular", s.overdueActions.length > 2 && "font-medium text-off")}>
+                      <dd className={cn("text-right tabular", s.overdueActions.length > 2 && "font-medium text-off-ink")}>
                         {s.overdueActions.length}/{s.openActions.length}
                       </dd>
                       <dt className="text-muted-foreground">Weekly cadence</dt>
-                      <dd className={cn("text-right tabular", s.meetingsLast4Weeks < 4 && "text-risk")}>{s.meetingsLast4Weeks}/4</dd>
-                      <dt className="text-muted-foreground">Last review</dt>
-                      <dd className="text-right">{s.lastReview ? relativeDays(s.lastReview.scheduled_at) : "—"}</dd>
-                      <dt className="text-muted-foreground">Next quarterly</dt>
-                      <dd className="text-right">{s.nextQuarterly ? formatDate(s.nextQuarterly.scheduled_at, { year: false }) : "—"}</dd>
+                      <dd className={cn("text-right tabular", s.meetingsLast4Weeks < 4 && "text-risk-ink")}>{s.meetingsLast4Weeks}/4</dd>
+                      <dt className="text-muted-foreground">Org. actions</dt>
+                      <dd className={cn("text-right tabular", orgOverdue > 0 && "text-risk-ink")}>
+                        {s.orgActions.length}
+                        {orgOverdue ? ` · ${orgOverdue} late` : ""}
+                      </dd>
+                      <dt className="text-muted-foreground">Last offsite</dt>
+                      <dd className="text-right">{s.lastOffsite ? formatDate(s.lastOffsite.scheduled_at, { year: false }) : "—"}</dd>
+                      <dt className="text-muted-foreground">Next offsite</dt>
+                      <dd className={cn("text-right", !s.nextOffsite && "text-risk-ink")}>{s.nextOffsite ? formatDate(s.nextOffsite.scheduled_at, { year: false }) : "Not set"}</dd>
                       {ic?.target_moic && (
                         <>
                           <dt className="text-muted-foreground">Target MOIC</dt>
@@ -137,7 +250,7 @@ export default async function PortfolioPage() {
                   </div>
                   {note && (
                     <div className="flex items-start gap-2 border-t bg-muted/30 px-4 py-2.5 text-[12.5px]">
-                      <Flag className={cn("mt-0.5 size-3.5 shrink-0", note.intervention_level === "intervene" ? "text-off" : "text-brand")} />
+                      <Flag className={cn("mt-0.5 size-3.5 shrink-0", note.intervention_level === "intervene" ? "text-off-ink" : "text-brand-ink")} />
                       <p className="line-clamp-2">
                         <span className="font-medium">Omni: {LEVEL[note.intervention_level as keyof typeof LEVEL]}.</span> <span className="text-muted-foreground">{note.body}</span>
                       </p>
@@ -157,7 +270,7 @@ export default async function PortfolioPage() {
               <div className="divide-y">
                 {escalations.map(({ i, s }) => (
                   <Link key={i.id} href={`/c/${s.company.slug}/execution/issue/${i.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
-                    <CompanyMark name={s.company.name} color={s.company.brand_color} />
+                    <CompanyMark name={s.company.name} color={s.company.brand_color} logoUrl={logoOf.get(s.company.id)} />
                     <span className="min-w-0 flex-1 truncate text-[13px]">{i.title}</span>
                     <PriorityBadge priority={i.priority} />
                     <span className="w-24 text-right text-xs text-muted-foreground">{relativeDays(i.created_at)}</span>
@@ -169,16 +282,16 @@ export default async function PortfolioPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-1.5">
-                  <CalendarClock className="size-3.5 text-muted-foreground" /> Upcoming management meetings
+                  <CalendarClock className="size-3.5 text-muted-foreground" /> Upcoming meetings, Boards and offsites
                 </CardTitle>
               </CardHeader>
               <div className="divide-y">
                 {snaps
-                  .flatMap((s) => (s.nextMeeting ? [{ s, m: s.nextMeeting }] : []))
+                  .flatMap((s) => [s.nextMeeting, s.nextBoard, s.nextOffsite].filter((m, i, a) => m && a.findIndex((x) => x?.id === m.id) === i).map((m) => ({ s, m: m! })))
                   .sort((a, b) => a.m.scheduled_at.localeCompare(b.m.scheduled_at))
                   .map(({ s, m }) => (
                     <Link key={m.id} href={`/c/${s.company.slug}/meetings/${m.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
-                      <CompanyMark name={s.company.name} color={s.company.brand_color} />
+                      <CompanyMark name={s.company.name} color={s.company.brand_color} logoUrl={logoOf.get(s.company.id)} />
                       <span className="min-w-0 flex-1 truncate text-[13px]">{m.title}</span>
                       <span className="text-xs text-muted-foreground">{formatDate(m.scheduled_at, { year: false })}</span>
                     </Link>
@@ -207,7 +320,7 @@ function Metric({ label, value, delta }: { label: string; value: string; delta: 
     <div className="px-4 py-3">
       <p className="text-[11px] text-muted-foreground">{label}</p>
       <p className="mt-0.5 text-sm font-semibold tabular">{value}</p>
-      <p className={cn("text-[11.5px] tabular", delta === null ? "text-muted-foreground" : delta >= 0 ? "text-on" : delta > -0.05 ? "text-risk" : "text-off")}>{formatPct(delta, 1, true)} vs plan</p>
+      <p className={cn("text-[11.5px] tabular", delta === null ? "text-muted-foreground" : delta >= 0 ? "text-on-ink" : delta > -0.05 ? "text-risk-ink" : "text-off-ink")}>{formatPct(delta, 1, true)} vs plan</p>
     </div>
   );
 }

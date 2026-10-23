@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { Field } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { RAG_OPTIONS } from "@/lib/domain/status";
+import { PRIORITY_STATUS_OPTIONS, RAG_OPTIONS } from "@/lib/domain/status";
 import { FormDialog, type FormAction } from "./forms";
 
 export interface CrewOption {
@@ -55,12 +55,12 @@ function OptionalSelect({ name, label, options, defaultValue, placeholder = "Non
   );
 }
 
-function StatusProgress({ status, progress, errors }: { status?: string; progress?: number; errors: Errors }) {
+function StatusProgress({ status, progress, errors, options = RAG_OPTIONS }: { status?: string; progress?: number; errors: Errors; options?: ReadonlyArray<{ value: string; label: string }> }) {
   return (
     <div className="grid grid-cols-2 gap-3">
       <Field label="Status" error={errors.status}>
-        <NativeSelect name="status" defaultValue={status ?? "on_track"}>
-          {RAG_OPTIONS.map((o) => (
+        <NativeSelect name="status" defaultValue={status && options.some((o) => o.value === status) ? status : "on_track"}>
+          {options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
@@ -99,9 +99,13 @@ export interface ActionDefaults {
   issue_id?: string | null;
   decision_id?: string | null;
   meeting_id?: string | null;
+  /** Corrective action against a KPI — shown on the Monday scorecard while the KPI is off track. */
+  metric_id?: string | null;
+  /** Action agreed in response to a listening round. */
+  listening_round_id?: string | null;
 }
 
-export function ActionDialog({ trigger, action, crew, priorities, issues = [], defaults = {}, title = "Assign action", submitLabel = "Assign action" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; priorities: Option[]; issues?: Option[]; defaults?: ActionDefaults; title?: string; submitLabel?: string }) {
+export function ActionDialog({ trigger, action, crew, priorities, issues = [], metrics = [], defaults = {}, title = "Assign action", submitLabel = "Assign action" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; priorities: Option[]; issues?: Option[]; metrics?: Option[]; defaults?: ActionDefaults; title?: string; submitLabel?: string }) {
   const [inAWeek] = useState(() => new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
   const due = defaults.due_date ?? inAWeek;
   return (
@@ -119,6 +123,9 @@ export function ActionDialog({ trigger, action, crew, priorities, issues = [], d
           </div>
           <OptionalSelect name="quarterly_priority_id" label="Supports priority" options={priorities} defaultValue={defaults.quarterly_priority_id} />
           {issues.length > 0 && <OptionalSelect name="issue_id" label="Resolves issue" options={issues} defaultValue={defaults.issue_id} />}
+          {metrics.length > 0 && <OptionalSelect name="metric_id" label="Corrective action for KPI" options={metrics} defaultValue={defaults.metric_id} />}
+          {defaults.metric_id && metrics.length === 0 && <input type="hidden" name="metric_id" value={defaults.metric_id} />}
+          {defaults.listening_round_id && <input type="hidden" name="listening_round_id" value={defaults.listening_round_id} />}
           {defaults.decision_id && <input type="hidden" name="decision_id" value={defaults.decision_id} />}
           {defaults.issue_id && issues.length === 0 && <input type="hidden" name="issue_id" value={defaults.issue_id} />}
           {defaults.meeting_id && <input type="hidden" name="meeting_id" value={defaults.meeting_id} />}
@@ -171,11 +178,11 @@ export function IssueDialog({ trigger, action, crew, priorities, metrics, goals 
             <OptionalSelect name="metric_id" label="Related KPI" options={metrics} defaultValue={defaults.metric_id} />
             <OptionalSelect name="quarterly_priority_id" label="Related priority" options={priorities} defaultValue={defaults.quarterly_priority_id} />
           </div>
-          {goals.length > 0 && <OptionalSelect name="annual_goal_id" label="Related annual goal" options={goals} defaultValue={defaults.annual_goal_id} />}
+          {goals.length > 0 && <OptionalSelect name="annual_goal_id" label="Related 12-month objective" options={goals} defaultValue={defaults.annual_goal_id} />}
           {defaults.status && <input type="hidden" name="status" value={defaults.status} />}
           {defaults.raised_in_meeting_id && <input type="hidden" name="raised_in_meeting_id" value={defaults.raised_in_meeting_id} />}
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="escalated_to_omni" defaultChecked={defaults.escalated_to_omni} className="size-4 rounded border-input accent-[var(--brand)]" />
+            <input type="checkbox" name="escalated_to_omni" defaultChecked={defaults.escalated_to_omni} className="size-4 rounded border-input accent-brand" />
             Escalate to the Omni operating team
           </label>
         </>
@@ -204,7 +211,7 @@ export function DecisionDialog({ trigger, action, crew, issues, defaults = {} }:
           <OptionalSelect name="issue_id" label="Resolves issue" options={issues} defaultValue={defaults.issue_id} />
           {defaults.meeting_id && <input type="hidden" name="meeting_id" value={defaults.meeting_id} />}
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="resolve_issue" defaultChecked={Boolean(defaults.issue_id)} className="size-4 rounded border-input accent-[var(--brand)]" />
+            <input type="checkbox" name="resolve_issue" defaultChecked={Boolean(defaults.issue_id)} className="size-4 rounded border-input accent-brand" />
             Mark the linked issue as resolved
           </label>
         </>
@@ -228,12 +235,12 @@ export function ResolveIssueDialog({ trigger, action, meetingId }: { trigger: Re
   );
 }
 
-export function WinningMoveDialog({ trigger, action, crew, defaults = {}, title = "Add Winning Move" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; defaults?: Partial<{ title: string; description: string | null; measurable_outcome: string | null; owner_id: string; status: string; progress: number; start_date: string | null; due_date: string | null }>; title?: string }) {
+export function WinningMoveDialog({ trigger, action, crew, defaults = {}, title = "Add Three-Year Outcome" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; defaults?: Partial<{ title: string; description: string | null; measurable_outcome: string | null; owner_id: string; status: string; progress: number; start_date: string | null; due_date: string | null }>; title?: string }) {
   return (
     <FormDialog trigger={trigger} title={title} description="A strategic move that underpins value creation." action={action} size="lg">
       {(e) => (
         <>
-          <Field label="Winning Move" error={e.title}>
+          <Field label="Three-Year Outcome" error={e.title}>
             <Input name="title" defaultValue={defaults.title} required />
           </Field>
           <Field label="Description" error={e.description}>
@@ -251,16 +258,16 @@ export function WinningMoveDialog({ trigger, action, crew, defaults = {}, title 
   );
 }
 
-export function AnnualGoalDialog({ trigger, action, crew, moves, fiscalYear, defaults = {}, title = "Add annual goal" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; moves: Option[]; fiscalYear: number; defaults?: Partial<{ title: string; description: string | null; measurable_outcome: string | null; owner_id: string; status: string; progress: number; start_date: string | null; due_date: string | null; winning_move_id: string; unit: string | null; baseline_value: number | null; target_value: number | null; current_value: number | null; fiscal_year: number }>; title?: string }) {
+export function AnnualGoalDialog({ trigger, action, crew, moves, fiscalYear, defaults = {}, title = "Add 12-month objective" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; moves: Option[]; fiscalYear: number; defaults?: Partial<{ title: string; description: string | null; measurable_outcome: string | null; owner_id: string; status: string; progress: number; start_date: string | null; due_date: string | null; winning_move_id: string; unit: string | null; baseline_value: number | null; target_value: number | null; current_value: number | null; fiscal_year: number }>; title?: string }) {
   return (
     <FormDialog trigger={trigger} title={title} description="A measurable outcome management commits to this year." action={action} size="lg">
       {(e) => (
         <>
-          <Field label="Annual goal" error={e.title}>
+          <Field label="12-month objective" error={e.title}>
             <Input name="title" defaultValue={defaults.title} required />
           </Field>
           <div className="grid grid-cols-[1fr_120px] gap-3">
-            <Field label="Winning Move" error={e.winning_move_id}>
+            <Field label="Three-Year Outcome" error={e.winning_move_id}>
               <NativeSelect name="winning_move_id" defaultValue={defaults.winning_move_id ?? ""} required>
                 <option value="" disabled>
                   Choose…
@@ -313,16 +320,16 @@ export function AnnualGoalDialog({ trigger, action, crew, moves, fiscalYear, def
   );
 }
 
-export function PriorityDialog({ trigger, action, crew, goals, quarters, defaults = {}, title = "Add quarterly priority" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; goals: Option[]; quarters: Option[]; defaults?: Partial<{ title: string; description: string | null; measurable_outcome: string | null; owner_id: string; status: string; progress: number; start_date: string | null; due_date: string | null; annual_goal_id: string; quarter_id: string }>; title?: string }) {
+export function PriorityDialog({ trigger, action, crew, goals, quarters, defaults = {}, title = "Add 90-day priority" }: { trigger: ReactNode; action: FormAction; crew: CrewOption[]; goals: Option[]; quarters: Option[]; defaults?: Partial<{ title: string; description: string | null; measurable_outcome: string | null; success_criteria: string | null; owner_id: string; status: string; progress: number; start_date: string | null; due_date: string | null; annual_goal_id: string; quarter_id: string }>; title?: string }) {
   return (
-    <FormDialog trigger={trigger} title={title} description="Every priority must connect to an annual goal." action={action} size="lg">
+    <FormDialog trigger={trigger} title={title} description="One owner, a defined outcome, measurable success criteria and a deadline. Every priority connects to a 12-month objective. Add milestones on the priority's page." action={action} size="lg">
       {(e) => (
         <>
           <Field label="Priority" error={e.title}>
             <Input name="title" defaultValue={defaults.title} required />
           </Field>
           <div className="grid grid-cols-[1fr_140px] gap-3">
-            <Field label="Annual goal" error={e.annual_goal_id}>
+            <Field label="12-month objective" error={e.annual_goal_id}>
               <NativeSelect name="annual_goal_id" defaultValue={defaults.annual_goal_id ?? ""} required>
                 <option value="" disabled>
                   Choose…
@@ -344,12 +351,15 @@ export function PriorityDialog({ trigger, action, crew, goals, quarters, default
               </NativeSelect>
             </Field>
           </div>
-          <Field label="Measurable outcome" error={e.measurable_outcome}>
-            <Input name="measurable_outcome" defaultValue={defaults.measurable_outcome ?? ""} placeholder="What does done look like?" />
+          <Field label="Defined outcome" error={e.measurable_outcome}>
+            <Input name="measurable_outcome" defaultValue={defaults.measurable_outcome ?? ""} placeholder="What will be true at the end of the 90 days?" />
+          </Field>
+          <Field label="Measurable success criteria" error={e.success_criteria} hint="How we will know — numbers, dates, evidence.">
+            <Textarea name="success_criteria" defaultValue={defaults.success_criteria ?? ""} rows={2} />
           </Field>
           <OwnerSelect crew={crew} defaultValue={defaults.owner_id} error={e.owner_id} />
-          <StatusProgress status={defaults.status} progress={defaults.progress} errors={e} />
-          <Dates start={defaults.start_date} due={defaults.due_date} errors={e} />
+          <StatusProgress status={defaults.status} progress={defaults.progress} errors={e} options={PRIORITY_STATUS_OPTIONS} />
+          <Dates start={defaults.start_date} due={defaults.due_date} errors={e} dueLabel="Deadline" />
           <Field label="Description" error={e.description}>
             <Textarea name="description" defaultValue={defaults.description ?? ""} rows={2} />
           </Field>

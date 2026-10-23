@@ -17,11 +17,11 @@ function withCitations(text: string, sources: Map<string, SourceRef>) {
         {m[1].split(/,\s*/).map((id) => {
           const s = sources.get(id);
           return s ? (
-            <Link key={id} href={s.href} title={s.label} className="ml-0.5 rounded bg-muted px-1 text-[10.5px] font-medium text-muted-foreground align-super hover:bg-brand/15 hover:text-brand">
+            <Link key={id} href={s.href} title={s.label} className="ml-0.5 rounded bg-muted px-1 text-[10.5px] font-medium text-muted-foreground align-super hover:bg-brand/15 hover:text-brand-ink">
               {id}
             </Link>
           ) : (
-            <span key={id} className="ml-0.5 text-[10.5px] text-off align-super" title="Unknown source">
+            <span key={id} className="ml-0.5 text-[10.5px] text-off-ink align-super" title="Unknown source">
               {id}?
             </span>
           );
@@ -84,7 +84,7 @@ export function AiDraft({ companyId, task, sources, enabled }: { companyId: stri
       </div>
       {result && (
         <div className="mt-4 rounded-lg border border-brand/30 bg-[color-mix(in_oklch,var(--brand)_4%,var(--card))] p-4">
-          <p className="mb-2 text-[11px] font-semibold tracking-[0.06em] text-brand uppercase">AI draft · {result.model} · review before sharing</p>
+          <p className="mb-2 text-[11px] font-semibold tracking-[0.06em] text-brand-ink uppercase">AI draft · {result.model} · review before sharing</p>
           <Rendered text={result.text} sources={map} />
         </div>
       )}

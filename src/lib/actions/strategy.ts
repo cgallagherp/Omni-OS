@@ -4,46 +4,67 @@ import { requireCompanyPermission } from "@/lib/auth";
 import { deleteScoped, insertScoped, revalidateCompany, updateScoped } from "./common";
 import { ActionError, dbError, formObject, run, zDate, zNumber, zOptional, zOptionalUuid, zRequired, type ActionResult } from "./result";
 
+const lines = z
+  .string()
+  .optional()
+  .transform((v) =>
+    (v ?? "")
+      .split("\n")
+      .map((s) => s.replace(/^[-•*]\s*/, "").trim())
+      .filter(Boolean),
+  );
+
+/** "Name — description" (or "Name: description") per line. */
+const valuesField = lines.transform((rows) =>
+  rows.slice(0, 12).map((r) => {
+    const m = r.match(/^(.+?)\s*(?:—|–|:| - )\s*(.+)$/);
+    return m ? { name: m[1].trim(), description: m[2].trim() } : { name: r, description: "" };
+  }),
+);
+
 const northStarSchema = z.object({
-  purpose: zOptional(2000),
   vision: zOptional(2000),
-  five_year_ambition: zOptional(4000),
-  three_year_destination: zOptional(4000),
-  investment_thesis: zOptional(4000),
+  mission: zOptional(2000),
+  values: valuesField,
+  target_end_state: zOptional(4000),
+  strategic_positioning: zOptional(4000),
+  market_opportunity: zOptional(4000),
+  financial_ambition: zOptional(4000),
   exit_equity_story: zOptional(4000),
   buyer_proposition: zOptional(4000),
+  strategic_value: zOptional(4000),
+  potential_buyers: lines.transform((r) => r.slice(0, 30)),
   target_year: z.coerce.number().int().min(2000).max(2100).nullable().optional(),
   target_revenue: zNumber,
   target_ebitda: zNumber,
   target_ev: zNumber,
   baseline_revenue: zNumber,
   baseline_ebitda: zNumber,
-  assumptions: z
-    .string()
-    .optional()
-    .transform((v) =>
-      (v ?? "")
-        .split("\n")
-        .map((s) => s.replace(/^[-•*]\s*/, "").trim())
-        .filter(Boolean),
-    ),
+  assumptions: lines,
   change_summary: zRequired("Summary of the change", 500),
 });
+
+const TEXT_FIELDS = [
+  "vision",
+  "mission",
+  "target_end_state",
+  "strategic_positioning",
+  "market_opportunity",
+  "financial_ambition",
+  "exit_equity_story",
+  "buyer_proposition",
+  "strategic_value",
+] as const;
 
 /** Updates the North Star. A trigger stores every material change as a new permanent version. */
 export async function updateNorthStar(companyId: string, fd: FormData): Promise<ActionResult> {
   return run(async () => {
     const ctx = await requireCompanyPermission(companyId, "admin");
     const { change_summary, ...data } = northStarSchema.parse(formObject(fd));
+    const text = Object.fromEntries(TEXT_FIELDS.map((k) => [k, data[k] ?? ""])) as Record<(typeof TEXT_FIELDS)[number], string>;
     const row = {
       ...data,
-      purpose: data.purpose ?? "",
-      vision: data.vision ?? "",
-      five_year_ambition: data.five_year_ambition ?? "",
-      three_year_destination: data.three_year_destination ?? "",
-      investment_thesis: data.investment_thesis ?? "",
-      exit_equity_story: data.exit_equity_story ?? "",
-      buyer_proposition: data.buyer_proposition ?? "",
+      ...text,
       last_change_summary: change_summary,
       updated_by: ctx.viewer.id,
     };
@@ -109,7 +130,7 @@ export async function deleteMilestone(companyId: string, id: string): Promise<Ac
   });
 }
 
-/** Company settings (Winning Move limit etc.). */
+/** Company settings (Flight Plan limits etc.). Branding has its own action. */
 export async function updateCompanySettings(companyId: string, fd: FormData): Promise<ActionResult> {
   return run(async () => {
     const ctx = await requireCompanyPermission(companyId, "admin");
@@ -119,18 +140,20 @@ export async function updateCompanySettings(companyId: string, fd: FormData): Pr
         sector: zOptional(120),
         description: zOptional(1000),
         headquarters: zOptional(120),
-        brand_color: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a hex colour like #2563EB"),
         currency: z.enum(["GBP", "EUR", "USD"]),
         fiscal_year_start_month: z.coerce.number().int().min(1).max(12),
-        max_winning_moves: z.coerce.number().int().min(1).max(10),
+        max_three_year_outcomes: z.coerce.number().int().min(1).max(10),
+        priority_target: z.coerce.number().int().min(1).max(10),
+        max_priorities: z.coerce.number().int().min(1).max(10),
       })
+      .refine((d) => d.max_priorities >= d.priority_target, { message: "The hard limit must be at least the target", path: ["max_priorities"] })
       .parse(formObject(fd));
     const { data: company, error } = await ctx.supabase.from("companies").select("settings").eq("id", companyId).single();
     dbError(error);
-    const { max_winning_moves, ...fields } = data;
+    const { max_three_year_outcomes, priority_target, max_priorities, ...fields } = data;
     const { data: updated, error: e2 } = await ctx.supabase
       .from("companies")
-      .update({ ...fields, settings: { ...((company?.settings as object) ?? {}), max_winning_moves } })
+      .update({ ...fields, settings: { ...((company?.settings as object) ?? {}), max_three_year_outcomes, priority_target, max_priorities } })
       .eq("id", companyId)
       .select("id");
     dbError(e2);

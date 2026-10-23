@@ -61,24 +61,39 @@ export async function removeCrewMember(companyId: string, id: string): Promise<A
   });
 }
 
-const gapSchema = z.object({
-  type: z.enum(["hire", "capability", "development"]),
+/**
+ * Agreed organisational actions — critical roles, approved hires, structure
+ * changes and capability initiatives. Omni OS deliberately records no
+ * individual assessments (performance, potential, psychometrics, pay, etc.).
+ */
+const orgActionSchema = z.object({
+  type: z.enum(["critical_role", "hire", "structure", "capability"]),
   title: zRequired("Title"),
   description: zOptional(2000),
   priority: z.enum(["critical", "high", "medium", "low"]),
   status: z.enum(["open", "in_progress", "closed"]),
   owner_id: zUuid,
-  crew_member_id: zOptionalUuid,
   target_date: zDate,
+  quarterly_priority_id: zOptionalUuid,
+  annual_goal_id: zOptionalUuid,
 });
 
-export async function saveGap(companyId: string, id: string | null, fd: FormData): Promise<ActionResult> {
+export async function saveOrgAction(companyId: string, id: string | null, fd: FormData): Promise<ActionResult> {
   return run(async () => {
     const ctx = await requireCompanyPermission(companyId, "write");
-    const data = gapSchema.parse(formObject(fd));
-    if (id) await updateScoped(ctx, "org_gaps", id, data);
-    else await insertScoped(ctx, "org_gaps", data);
+    const data = orgActionSchema.parse(formObject(fd));
+    if (id) await updateScoped(ctx, "org_actions", id, data);
+    else await insertScoped(ctx, "org_actions", data);
     revalidateCompany(ctx);
     return { ok: true, message: "Saved" };
+  });
+}
+
+export async function deleteOrgAction(companyId: string, id: string): Promise<ActionResult> {
+  return run(async () => {
+    const ctx = await requireCompanyPermission(companyId, "admin");
+    await deleteScoped(ctx, "org_actions", id);
+    revalidateCompany(ctx);
+    return { ok: true, message: "Removed" };
   });
 }

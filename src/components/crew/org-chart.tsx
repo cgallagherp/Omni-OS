@@ -37,7 +37,7 @@ export function OrgChart({ crew, slug, load }: { crew: CrewMember[]; slug: strin
               <p className="truncate text-[11px] text-muted-foreground">{c.is_open_seat ? c.full_name : c.title}</p>
             </div>
           </div>
-          {c.seat && <p className="mt-2 text-[11px] font-medium tracking-wide text-brand uppercase">{c.seat}</p>}
+          {c.seat && <p className="mt-2 text-[11px] font-medium tracking-wide text-brand-ink uppercase">{c.seat}</p>}
           <ul className="mt-1 space-y-0.5 text-[11.5px] text-muted-foreground">
             {c.responsibilities.slice(0, 2).map((r) => (
               <li key={r} className="truncate">· {r}</li>
@@ -46,7 +46,7 @@ export function OrgChart({ crew, slug, load }: { crew: CrewMember[]; slug: strin
           {l && !c.is_open_seat && (
             <p className="mt-2 border-t pt-1.5 text-[11px] text-muted-foreground">
               {plural(l.priorities, "priority", "priorities")} · {plural(l.kpis, "KPI")} · {plural(l.openActions, "action")}
-              {l.overdue > 0 && <span className="text-off"> · {l.overdue} overdue</span>}
+              {l.overdue > 0 && <span className="text-off-ink"> · {l.overdue} overdue</span>}
             </p>
           )}
         </Link>

@@ -80,7 +80,7 @@ export function Activity({
         {shown.map((e) => (
           <li key={e.id} className="relative">
             <span className="absolute top-0.5 -left-[25px] flex size-[18px] items-center justify-center rounded-full border bg-card">
-              {e.kind === "comment" ? <MessageSquare className="size-2.5" /> : e.kind === "update" ? <Megaphone className="size-2.5 text-brand" /> : <History className="size-2.5 text-muted-foreground" />}
+              {e.kind === "comment" ? <MessageSquare className="size-2.5" /> : e.kind === "update" ? <Megaphone className="size-2.5 text-brand-ink" /> : <History className="size-2.5 text-muted-foreground" />}
             </span>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {(e.kind === "comment" || e.kind === "update") && <Avatar name={e.actor} size="xs" />}

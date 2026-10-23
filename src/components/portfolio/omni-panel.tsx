@@ -17,7 +17,7 @@ export async function OmniPanel({ supabase, companyId, currency }: { supabase: S
     <Card className="border-dashed border-brand/40">
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5">
-          <Lock className="size-3.5 text-brand" /> Omni confidential
+          <Lock className="size-3.5 text-brand-ink" /> Omni confidential
         </CardTitle>
         <span className="text-xs text-muted-foreground">Not visible to management</span>
       </CardHeader>

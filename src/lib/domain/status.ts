@@ -22,6 +22,17 @@ export const RAG_OPTIONS = [
   { value: "not_started", label: "Not started" },
 ] as const;
 
+/** 90-day priorities are on track, at risk or off track; the result is recorded at the offsite. */
+export const PRIORITY_STATUS_OPTIONS = RAG_OPTIONS.filter((o) => o.value === "on_track" || o.value === "at_risk" || o.value === "off_track");
+
+export const OUTCOME_OPTIONS = [
+  { value: "achieved", label: "Achieved" },
+  { value: "partly_achieved", label: "Partly achieved" },
+  { value: "missed", label: "Missed" },
+  { value: "stopped", label: "Stopped" },
+] as const;
+export const OUTCOME_LABEL = Object.fromEntries(OUTCOME_OPTIONS.map((o) => [o.value, o.label])) as Record<(typeof OUTCOME_OPTIONS)[number]["value"], string>;
+
 export const PRIORITY_META = {
   critical: { label: "Critical", tone: "off" as Tone },
   high: { label: "High", tone: "risk" as Tone },
@@ -30,10 +41,12 @@ export const PRIORITY_META = {
 };
 
 export const MEETING_TYPE_LABEL = {
-  weekly: "Weekly leadership",
+  weekly: "Weekly ELT meeting",
   monthly: "Monthly operating review",
-  quarterly: "Quarterly reset",
-  annual: "Annual planning",
+  quarterly: "Quarterly offsite",
+  annual: "Annual strategy reset",
+  board_monthly: "Monthly Board",
+  board_quarterly: "Quarterly Board",
 } as const;
 
 export const CATEGORY_LABEL = {

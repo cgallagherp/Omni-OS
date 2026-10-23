@@ -27,9 +27,27 @@ Legend: ✅ implemented and covered by automated tests · 🟡 implemented, veri
 | AI narrative drafting via Claude | 🟡 code complete; **not exercised** — no `ANTHROPIC_API_KEY` in this environment |
 | Responsive layouts | 🟡 every page checked for horizontal overflow at 390px |
 
+## Milestone 3 — v4 operating system update ✅
+| Item | Status |
+|---|---|
+| Pillars renamed (Mission Control), Flight Plan cascade terminology, grouped navigation | ✅ |
+| Omni identity (logo, palette, Rubik) and per-company Appearance & Branding with live preview | ✅ RLS + E2E tested |
+| North Star: Vision → Mission → Values and the deck's destination/buyer fields | ✅ |
+| 90-day priorities: success criteria, milestones, on/at/off status, ~3 guidance, DB hard limit | ✅ |
+| Crew: agreed organisational actions only; no individual assessments | ✅ |
+| Mission Control hub and Blueprint attention vs routine | ✅ |
+| Monday KPI scorecard: generate → CEO approve → Omni (in-app + email outbox), history | ✅ email provider not configured here |
+| Weekly ELT agenda in four parts, corrective actions against KPIs, searchable history | ✅ |
+| Reporting: flash, monthly Board check-in, quarterly Board pack, deadlines, compliance | ✅ |
+| 8-stage quarterly offsite with annual reset, results, comparison, company update | ✅ E2E tested |
+| Listening, First 100 days, Calendar & governance | ✅ |
+| Portfolio: Monday scorecards first, North Star progress, reporting compliance, offsites | ✅ |
+
 ## Not yet built / next steps
 - Integrations that populate `metric_values` (`source = 'integration'`) — data model is ready; no connectors yet.
 - Notifications (email/Slack) for overdue actions and escalations.
-- Annual planning workflow for a new fiscal year (annual goals for FY+1 are created manually in the Flight Plan today).
+- Budget import: the annual reset records budget assumptions; the phased budget is still entered as KPI targets (or by CSV).
+- Bank holidays in reporting deadlines.
+- A per-company CEO company-wide update is drafted and saved but not distributed (no all-staff channel integration).
 - Realtime multi-user presence in live meetings (each participant's view refreshes on their own actions; others refresh on navigation).
 - Production deployment (Vercel + Supabase cloud) — see README.

@@ -38,7 +38,7 @@ export default async function AssistantPage({ params, searchParams }: { params: 
           ))}
           <div className="mt-4 rounded-lg border bg-card p-3 text-xs text-muted-foreground">
             <p className="mb-1 flex items-center gap-1.5 font-medium text-foreground">
-              <ShieldCheck className="size-3.5 text-on" /> Permission-scoped
+              <ShieldCheck className="size-3.5 text-on-ink" /> Permission-scoped
             </p>
             Built only from records you can access in {snap.company.name}. Omni-confidential data is never included.
           </div>
@@ -64,7 +64,7 @@ export default async function AssistantPage({ params, searchParams }: { params: 
                           {f.sources.map((id) => {
                             const src = sourceById.get(id);
                             return src ? (
-                              <Link key={id} href={src.href} title={src.label} className="ml-1 rounded bg-muted px-1 text-[10.5px] font-medium text-muted-foreground align-super hover:bg-brand/15 hover:text-brand">
+                              <Link key={id} href={src.href} title={src.label} className="ml-1 rounded bg-muted px-1 text-[10.5px] font-medium text-muted-foreground align-super hover:bg-brand/15 hover:text-brand-ink">
                                 {id}
                               </Link>
                             ) : null;
@@ -76,7 +76,7 @@ export default async function AssistantPage({ params, searchParams }: { params: 
                   {s.recommendations.length > 0 && (
                     <div className="mt-3 rounded-md border border-dashed bg-muted/30 p-3">
                       <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">
-                        <Lightbulb className="size-3.5 text-risk" /> Suggested — judgement, not fact
+                        <Lightbulb className="size-3.5 text-risk-ink" /> Suggested — judgement, not fact
                       </p>
                       <ul className="list-disc space-y-1 pl-4 text-[13px]">
                         {s.recommendations.map((r) => (

@@ -38,7 +38,7 @@ export interface GridRow {
 const CELL_BG: Record<GridCell["status"], string> = {
   on_track: "bg-on-bg/70 text-foreground",
   at_risk: "bg-risk-bg text-foreground",
-  off_track: "bg-off-bg text-off font-medium",
+  off_track: "bg-off-bg text-off-ink font-medium",
   no_data: "text-muted-foreground",
 };
 
@@ -61,7 +61,7 @@ export function ScoreboardGrid({ companyId, slug, rows, periods, canWrite }: { c
           </button>
         ))}
         <label className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-          <input type="checkbox" checked={onlyExceptions} onChange={(e) => setOnlyExceptions(e.target.checked)} className="size-3.5 accent-[var(--brand)]" /> Exceptions only
+          <input type="checkbox" checked={onlyExceptions} onChange={(e) => setOnlyExceptions(e.target.checked)} className="size-3.5 accent-brand" /> Exceptions only
         </label>
       </div>
       <div className="overflow-x-auto rounded-lg border bg-card scrollbar-thin">
@@ -74,7 +74,7 @@ export function ScoreboardGrid({ companyId, slug, rows, periods, canWrite }: { c
               {periods.map((p) => (
                 <th key={p.period} className={cn("min-w-[60px] px-1.5 py-2 text-right font-medium whitespace-nowrap", p.current && "text-foreground")}>
                   {p.label}
-                  {p.current && <span className="block text-[10px] font-normal text-brand">current</span>}
+                  {p.current && <span className="block text-[10px] font-normal text-brand-ink">current</span>}
                 </th>
               ))}
             </tr>

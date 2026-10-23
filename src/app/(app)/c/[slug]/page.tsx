@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CalendarClock, CircleAlert, Gavel, Play } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, CircleAlert, Flag, Gauge, Mail, Play, Users } from "lucide-react";
 import { getCompanyContext } from "@/lib/auth";
-import { loadCompanySnapshot } from "@/lib/data/snapshot";
+import { attentionOf, loadCompanySnapshot, onboardingActive } from "@/lib/data/snapshot";
 import { formatDate, formatMetric, formatMoney, formatPct, relativeDays } from "@/lib/domain/format";
-import { exceptionReason } from "@/lib/domain/metric-view";
 import { quarterLabel, quarterProgress } from "@/lib/domain/quarters";
 import { MEETING_TYPE_LABEL } from "@/lib/domain/status";
+import { REPORT_META } from "@/lib/domain/reporting";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { CompanyMark } from "@/components/os/logo";
+import { CompanyLogo, CompanyMark } from "@/components/os/logo";
 import { Owner } from "@/components/os/avatar";
-import { MetricCard, TrendIcon, targetLabel } from "@/components/os/metric-card";
-import { PriorityBadge, StatusBadge, StatusBar, StatusDot } from "@/components/os/status";
+import { MetricCard } from "@/components/os/metric-card";
+import { StatusBadge, StatusBar, StatusDot } from "@/components/os/status";
 import { cn } from "@/lib/utils";
 import { OmniPanel } from "@/components/portfolio/omni-panel";
 
@@ -32,6 +31,10 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
   const ns = s.northStar;
   const q = s.activeQuarter;
   const qp = q ? quarterProgress(q) : null;
+  const attention = attentionOf(s);
+  const inOnboarding = onboardingActive(s);
+  const onboardingDone = s.onboarding.filter((m) => m.status === "done").length;
+  const daysSinceCompletion = s.company.acquired_on ? Math.floor((s.now.getTime() - Date.parse(`${s.company.acquired_on}T00:00:00Z`)) / 86400000) : null;
 
   // Last-twelve-months run-rate for the North Star financial targets
   const ltm = (key: string) => {
@@ -47,19 +50,24 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
 
   const keyMetrics = s.metrics.filter((m) => m.metric.is_key);
   const crew = s.crewById;
-  const goalsByMove = new Map<string, number>();
-  for (const g of s.annualGoals) goalsByMove.set(g.winning_move_id, (goalsByMove.get(g.winning_move_id) ?? 0) + 1);
-  const topExceptions = s.exceptions.filter((e) => e.status === "off_track" || e.status === "at_risk").slice(0, 4);
   const pStatus = s.priorityStatus;
+  const leaders = s.crew.filter((c) => c.is_leadership);
+  const openSeats = s.crew.filter((c) => c.is_open_seat);
+  const thisWeek = s.sentScorecards.find((w) => w.week_start === s.weekStart);
+  const nextReports = s.reporting.filter((r) => r.state === "due" || r.state === "draft" || r.state === "overdue").slice(0, 3);
+  const milestonesFor = (id: string) => s.priorityMilestones.filter((m) => m.priority_id === id);
+  const logoUrl = ctx.company.branding.logoUrl;
 
   return (
     <div className="fade-in space-y-5">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <CompanyMark name={s.company.name} color={s.company.brand_color} size="lg" />
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">{s.company.name}</h1>
+        <div className="flex min-w-0 items-center gap-3">
+          {logoUrl ? <CompanyLogo name={s.company.name} logoUrl={logoUrl} className="h-10 max-w-[180px]" /> : <CompanyMark name={s.company.name} color={ctx.company.brandColor} size="lg" />}
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight">
+              {s.company.name} <span className="font-normal text-muted-foreground">· Blueprint</span>
+            </h1>
             <p className="text-[13px] text-muted-foreground">
               {s.company.sector} · FY{s.fiscalYear}
               {q && qp && (
@@ -67,12 +75,15 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
                   {" "}· {quarterLabel(q)} · week {qp.week} of {qp.total}
                 </>
               )}
+              {inOnboarding && daysSinceCompletion !== null && <> · day {daysSinceCompletion} of the first 100</>}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link href={`${base}/report`}>Board pack</Link>
+            <Link href={`${base}/weekly-scorecard`}>
+              <Mail /> Monday scorecard
+            </Link>
           </Button>
           {s.nextMeeting && (
             <Button asChild variant={s.nextMeeting.status === "in_progress" ? "brand" : "outline"} size="sm">
@@ -84,6 +95,56 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
           )}
         </div>
       </div>
+
+      {/* Mission Control: attention vs routine */}
+      <Card className={cn(attention.items.length ? "border-risk/50" : "border-on/40")} data-testid="attention">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1.5">
+            {attention.items.length ? <AlertTriangle className="size-4 text-risk-ink" /> : <CheckCircle2 className="size-4 text-on-ink" />}
+            {attention.items.length ? `Needs attention this week · ${attention.items.length}` : "Nothing needs attention this week"}
+          </CardTitle>
+          <Link href={`${base}/mission-control`} className="text-xs text-muted-foreground hover:text-foreground">
+            Mission Control <ArrowRight className="inline size-3" />
+          </Link>
+        </CardHeader>
+        {attention.items.length > 0 && (
+          <div className="grid divide-y md:grid-cols-2 md:divide-y-0 [&>*]:min-w-0">
+            {[0, 1].map((col) => (
+              <div key={col} className="divide-y md:border-r md:last:border-r-0">
+                {attention.items
+                  .slice(0, 8)
+                  .filter((_, idx) => idx % 2 === col)
+                  .map((a, idx) => (
+                    <Link key={idx} href={`${base}${a.href}`} className="flex items-start gap-2.5 px-4 py-2 hover:bg-accent/50">
+                      <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", a.severity === "off" ? "bg-off" : "bg-risk")} aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-medium">{a.title}</span>
+                        <span className="block truncate text-xs text-muted-foreground">{a.detail}</span>
+                      </span>
+                      {a.ownerId && <Owner person={crew.get(a.ownerId)} showName={false} />}
+                    </Link>
+                  ))}
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="border-t bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground/80">Routine:</span> {attention.routine.kpisOnTrack} of {attention.routine.kpisTotal} scorecard KPIs on track · {attention.routine.prioritiesOnTrack} of {attention.routine.prioritiesTotal} priorities on track · {attention.routine.issuesRoutine} other open issues
+          {attention.items.length > 8 && <> · {attention.items.length - 8} more in Mission Control</>}
+        </div>
+      </Card>
+
+      {inOnboarding && (
+        <Link href={`${base}/onboarding`} className="flex flex-col gap-2 rounded-lg border bg-card px-4 py-3 hover:bg-accent/40 sm:flex-row sm:items-center">
+          <span className="flex items-center gap-2 text-[13px] font-medium">
+            <Flag className="size-4 text-brand-ink" /> First 100 days
+          </span>
+          <Progress value={(onboardingDone / s.onboarding.length) * 100} tone="brand" className="sm:max-w-xs" />
+          <span className="text-xs text-muted-foreground">
+            {onboardingDone} of {s.onboarding.length} milestones complete · next: {s.onboarding.find((m) => m.status !== "done")?.title}
+          </span>
+        </Link>
+      )}
 
       {/* Health strip */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-3 xl:grid-cols-6">
@@ -100,7 +161,7 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
           tone={varianceTone(s.financials.ebitda?.variancePct)}
         />
         <HealthTile
-          label="90-day commitments"
+          label="90-Day Priorities"
           value={`${pStatus.on_track + pStatus.done}/${s.priorities.length}`}
           sub={`${pStatus.at_risk} at risk · ${pStatus.off_track} off track`}
           tone={pStatus.off_track > 0 ? "off" : pStatus.at_risk > 0 ? "risk" : "on"}
@@ -129,43 +190,19 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
         />
       </div>
 
-      {/* Attention */}
-      {topExceptions.length > 0 && (
-        <div className="flex flex-col gap-2 rounded-lg border border-risk/40 bg-risk-bg/50 px-3.5 py-2.5 sm:flex-row sm:items-center">
-          <div className="flex shrink-0 items-center gap-2 text-[13px] font-medium">
-            <AlertTriangle className="size-4 text-risk" /> Needs attention
-          </div>
-          <div className="flex flex-1 flex-wrap gap-x-4 gap-y-1">
-            {topExceptions.map((e) => (
-              <Link key={e.metric.id} href={`${base}/scoreboard/${e.metric.id}`} className="inline-flex items-center gap-1.5 text-[13px] hover:underline">
-                <StatusDot status={e.status} />
-                <span className="font-medium">{e.metric.name}</span>
-                <span className="text-muted-foreground tabular">
-                  {formatMetric(e.latest?.value, e.metric.unit, { decimals: e.metric.decimals, currency: cur })} vs {targetLabel(e.metric, e.latest?.target ?? e.metric.target_value, cur)}
-                </span>
-                {e.deteriorating && <TrendIcon trend="declining" />}
-              </Link>
-            ))}
-          </div>
-          {s.nextMeeting && (
-            <span className="shrink-0 text-xs text-muted-foreground">On the agenda for {formatDate(s.nextMeeting.scheduled_at, { year: false })}</span>
-          )}
-        </div>
-      )}
-
       {/* North Star */}
-      {ns && (
+      {ns ? (
         <Card className="overflow-hidden">
           <div className="grid [&>*]:min-w-0 lg:grid-cols-[1.4fr_1fr]">
             <div className="border-b p-5 lg:border-r lg:border-b-0">
               <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold tracking-[0.08em] text-brand uppercase">North Star</p>
+                <p className="text-[11px] font-semibold tracking-[0.08em] text-brand-ink uppercase">North Star</p>
                 <Link href={`${base}/north-star`} className="text-xs text-muted-foreground hover:text-foreground">
-                  Strategy <ArrowRight className="inline size-3" />
+                  Vision, Mission, Values <ArrowRight className="inline size-3" />
                 </Link>
               </div>
-              <p className="mt-2 text-[15px] leading-relaxed font-medium text-balance">{ns.vision}</p>
-              <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">{ns.three_year_destination}</p>
+              <p className="mt-2 text-[15px] leading-relaxed font-medium text-balance">{ns.vision || <span className="text-muted-foreground italic">Vision not yet agreed</span>}</p>
+              {ns.target_end_state && <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-muted-foreground">{ns.target_end_state}</p>}
               <div className="mt-4 grid grid-cols-3 gap-4">
                 <Destination label={`Revenue FY${ns.target_year}`} target={formatMoney(ns.target_revenue, cur)} now={ltmRevenue !== null ? `${formatMoney(ltmRevenue, cur)} LTM` : null} pct={journey(ns.baseline_revenue, ltmRevenue, ns.target_revenue)} />
                 <Destination label={`EBITDA FY${ns.target_year}`} target={formatMoney(ns.target_ebitda, cur)} now={ltmEbitda !== null ? `${formatMoney(ltmEbitda, cur)} LTM` : null} pct={journey(ns.baseline_ebitda, ltmEbitda, ns.target_ebitda)} />
@@ -173,7 +210,12 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
               </div>
             </div>
             <div className="p-5">
-              <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">Winning Moves</p>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">Flight Plan · Three-Year Outcomes</p>
+                <Link href={`${base}/flight-plan`} className="text-xs text-muted-foreground hover:text-foreground">
+                  Flight Plan <ArrowRight className="inline size-3" />
+                </Link>
+              </div>
               <ul className="mt-2.5 space-y-2.5">
                 {s.winningMoves.map((w, i) => (
                   <li key={w.id}>
@@ -190,9 +232,14 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
                     </Link>
                   </li>
                 ))}
+                {!s.winningMoves.length && <li className="text-sm text-muted-foreground">No three-year outcomes yet.</li>}
               </ul>
             </div>
           </div>
+        </Card>
+      ) : (
+        <Card className="p-5 text-sm text-muted-foreground">
+          The North Star has not been defined yet. <Link className="font-medium text-brand-ink hover:underline" href={`${base}/north-star`}>Define it</Link>
         </Card>
       )}
 
@@ -212,11 +259,11 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
       </section>
 
       <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-[1.5fr_1fr]">
-        {/* 90-day commitments */}
+        {/* 90-day priorities */}
         <Card>
           <CardHeader>
             <CardTitle>
-              90-Day Commitments {q && <span className="font-normal text-muted-foreground">· {quarterLabel(q)}</span>}
+              90-Day Priorities {q && <span className="font-normal text-muted-foreground">· {quarterLabel(q)}</span>}
             </CardTitle>
             {qp && <span className="text-xs text-muted-foreground">{qp.daysLeft} days left</span>}
           </CardHeader>
@@ -227,7 +274,10 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
                 <Link key={p.id} href={`${base}/flight-plan/quarterly_priority/${p.id}`} className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-accent/50">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium">{p.title}</p>
-                    {goal && <p className="truncate text-xs text-muted-foreground">→ {goal.title}</p>}
+                    <p className="truncate text-xs text-muted-foreground">
+                      {milestonesFor(p.id).length > 0 && <>{milestonesFor(p.id).filter((m) => m.done).length}/{milestonesFor(p.id).length} milestones · </>}
+                      {goal ? `→ ${goal.title}` : "Not linked to an objective"}
+                    </p>
                   </div>
                   <Owner person={crew.get(p.owner_id)} className="hidden w-24 sm:inline-flex" />
                   <div className="hidden w-24 items-center gap-2 md:flex">
@@ -239,18 +289,20 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
               );
             })}
             {s.priorities.length === 0 && <p className="px-4 py-6 text-sm text-muted-foreground">No priorities in the active quarter.</p>}
+            {s.priorities.length > 3 && <p className="px-4 py-2 text-xs text-risk-ink">{s.priorities.length} priorities this quarter — Omni guidance is about three.</p>}
           </div>
         </Card>
 
-        {/* Annual goals */}
+        {/* 12-month objectives */}
         <Card>
           <CardHeader>
-            <CardTitle>Annual Goals · FY{s.fiscalYear}</CardTitle>
+            <CardTitle>12-Month Objectives · FY{s.fiscalYear}</CardTitle>
             <Link href={`${base}/flight-plan`} className="text-xs text-muted-foreground hover:text-foreground">
               Flight Plan <ArrowRight className="inline size-3" />
             </Link>
           </CardHeader>
           <div className="divide-y">
+            {!s.annualGoals.length && <p className="px-4 py-6 text-sm text-muted-foreground">No 12-month objectives for FY{s.fiscalYear} yet.</p>}
             {s.annualGoals.map((g) => (
               <Link key={g.id} href={`${base}/flight-plan/annual_goal/${g.id}`} className="block px-4 py-2.5 hover:bg-accent/50">
                 <div className="flex items-center gap-2">
@@ -270,106 +322,105 @@ export default async function BlueprintPage({ params }: { params: Promise<{ slug
       </div>
 
       <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-3">
-        {/* Issues */}
-        <Card className="xl:col-span-1">
+        {/* Crew summary */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-1.5">
-              <CircleAlert className="size-3.5 text-muted-foreground" /> Issues
+              <Users className="size-3.5 text-muted-foreground" /> Crew
             </CardTitle>
-            <Link href={`${base}/execution?view=issues`} className="text-xs text-muted-foreground hover:text-foreground">
-              {s.openIssues.length} open <ArrowRight className="inline size-3" />
+            <Link href={`${base}/crew`} className="text-xs text-muted-foreground hover:text-foreground">
+              Accountability chart <ArrowRight className="inline size-3" />
             </Link>
           </CardHeader>
-          <div className="divide-y">
-            {s.openIssues.slice(0, 5).map((i) => (
-              <Link key={i.id} href={`${base}/execution/issue/${i.id}`} className="block px-4 py-2.5 hover:bg-accent/50">
-                <p className="line-clamp-2 text-[13px] leading-snug font-medium">{i.title}</p>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <PriorityBadge priority={i.priority} />
-                  {i.escalated_to_omni && <Badge variant="brand">Escalated to Omni</Badge>}
-                  <Owner person={crew.get(i.owner_id)} className="ml-auto" />
+          <CardContent className="space-y-3">
+            <dl className="grid grid-cols-3 gap-3 text-center">
+              <Stat label="Leadership team" value={leaders.length - leaders.filter((l) => l.is_open_seat).length} />
+              <Stat label="Open seats" value={openSeats.length} tone={openSeats.length ? "risk" : undefined} />
+              <Stat label="Org. actions open" value={s.orgActions.length} />
+            </dl>
+            <div className="divide-y rounded-md border">
+              {s.orgActions.slice(0, 3).map((o) => (
+                <div key={o.id} className="flex items-center gap-2 px-3 py-2">
+                  <span className="min-w-0 flex-1 truncate text-[13px]">{o.title}</span>
+                  <span className={cn("shrink-0 text-[11.5px] tabular", o.target_date && o.target_date < s.now.toISOString().slice(0, 10) ? "font-medium text-off-ink" : "text-muted-foreground")}>
+                    {o.target_date ? formatDate(o.target_date, { year: false }) : "—"}
+                  </span>
                 </div>
-              </Link>
-            ))}
-            {s.openIssues.length === 0 && <p className="px-4 py-6 text-sm text-muted-foreground">No open issues.</p>}
-          </div>
-        </Card>
-
-        {/* Decisions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-1.5">
-              <Gavel className="size-3.5 text-muted-foreground" /> Recent decisions
-            </CardTitle>
-            <Link href={`${base}/execution?view=decisions`} className="text-xs text-muted-foreground hover:text-foreground">
-              Log <ArrowRight className="inline size-3" />
-            </Link>
-          </CardHeader>
-          <div className="divide-y">
-            {s.recentDecisions.slice(0, 5).map((d) => (
-              <div key={d.id} className="px-4 py-2.5">
-                <p className="line-clamp-2 text-[13px] leading-snug">{d.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {formatDate(d.decided_on)} · {crew.get(d.owner_id)?.full_name}
-                </p>
-              </div>
-            ))}
-            {s.recentDecisions.length === 0 && <p className="px-4 py-6 text-sm text-muted-foreground">No decisions recorded yet.</p>}
-          </div>
-        </Card>
-
-        {/* Execution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Execution</CardTitle>
-            <Link href={`${base}/execution?view=actions`} className="text-xs text-muted-foreground hover:text-foreground">
-              {s.openActions.length} open actions <ArrowRight className="inline size-3" />
-            </Link>
-          </CardHeader>
-          <CardContent className="space-y-4 p-0">
-            <div className="divide-y">
-              {[...s.overdueActions, ...s.openActions.filter((a) => !s.overdueActions.includes(a))].slice(0, 5).map((a) => {
-                const overdue = s.overdueActions.includes(a);
-                return (
-                  <div key={a.id} className="flex items-center gap-2 px-4 py-2">
-                    <span className="min-w-0 flex-1 truncate text-[13px]">{a.title}</span>
-                    <Owner person={crew.get(a.owner_id)} showName={false} />
-                    <span className={cn("w-20 shrink-0 text-right text-[11.5px] tabular", overdue ? "font-medium text-off" : "text-muted-foreground")}>
-                      {overdue ? relativeDays(a.due_date) : formatDate(a.due_date, { year: false })}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="border-t px-4 py-3">
-              <p className="mb-2 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Management rhythm</p>
-              <dl className="grid grid-cols-2 gap-y-1.5 text-[12.5px]">
-                <dt className="text-muted-foreground">Last weekly</dt>
-                <dd className="text-right">{s.lastWeekly ? formatDate(s.lastWeekly.scheduled_at, { year: false }) : "—"}</dd>
-                <dt className="text-muted-foreground">Last review</dt>
-                <dd className="text-right">{s.lastReview ? `${formatDate(s.lastReview.scheduled_at, { year: false })}` : "—"}</dd>
-                <dt className="text-muted-foreground">Weekly cadence (4 wks)</dt>
-                <dd className={cn("text-right tabular", s.meetingsLast4Weeks < 4 && "text-risk")}>{s.meetingsLast4Weeks}/4 held</dd>
-                <dt className="text-muted-foreground">Next quarterly reset</dt>
-                <dd className="text-right">{s.nextQuarterly ? formatDate(s.nextQuarterly.scheduled_at) : "—"}</dd>
-              </dl>
+              ))}
+              {!s.orgActions.length && <p className="px-3 py-2 text-sm text-muted-foreground">No open organisational actions.</p>}
             </div>
           </CardContent>
+        </Card>
+
+        {/* Mission Control */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-1.5">
+              <Gauge className="size-3.5 text-muted-foreground" /> Mission Control
+            </CardTitle>
+            <Link href={`${base}/execution`} className="text-xs text-muted-foreground hover:text-foreground">
+              Issues & actions <ArrowRight className="inline size-3" />
+            </Link>
+          </CardHeader>
+          <div className="divide-y">
+            {s.openIssues.slice(0, 3).map((i) => (
+              <Link key={i.id} href={`${base}/execution/issue/${i.id}`} className="flex items-center gap-2 px-4 py-2 hover:bg-accent/50">
+                <CircleAlert className={cn("size-3.5 shrink-0", i.priority === "critical" ? "text-off-ink" : "text-muted-foreground")} />
+                <span className="min-w-0 flex-1 truncate text-[13px]">{i.title}</span>
+                <Owner person={crew.get(i.owner_id)} showName={false} />
+              </Link>
+            ))}
+            {s.openIssues.length === 0 && <p className="px-4 py-2.5 text-sm text-muted-foreground">No open issues.</p>}
+          </div>
+          <div className="border-t px-4 py-3">
+            <dl className="grid grid-cols-2 gap-y-1.5 text-[12.5px]">
+              <dt className="text-muted-foreground">Open issues</dt>
+              <dd className="text-right tabular">{s.openIssues.length}</dd>
+              <dt className="text-muted-foreground">Open actions</dt>
+              <dd className="text-right tabular">
+                {s.openActions.length}
+                {s.overdueActions.length > 0 && <span className="text-off-ink"> · {s.overdueActions.length} overdue</span>}
+              </dd>
+              <dt className="text-muted-foreground">Decisions (last 10)</dt>
+              <dd className="text-right tabular">{s.recentDecisions.length}</dd>
+              <dt className="text-muted-foreground">Weekly ELT (4 wks)</dt>
+              <dd className={cn("text-right tabular", s.meetingsLast4Weeks < 4 && "text-risk-ink")}>{s.meetingsLast4Weeks}/4 held</dd>
+            </dl>
+          </div>
+        </Card>
+
+        {/* Next steps */}
+        <Card data-testid="next-steps">
+          <CardHeader>
+            <CardTitle>Next steps</CardTitle>
+            <Link href={`${base}/calendar`} className="text-xs text-muted-foreground hover:text-foreground">
+              Calendar <ArrowRight className="inline size-3" />
+            </Link>
+          </CardHeader>
+          <ul className="divide-y text-[13px]">
+            <NextStep
+              href={`${base}/weekly-scorecard`}
+              label="Monday scorecard"
+              when={thisWeek?.approved_at ? `Approved ${formatDate(thisWeek.approved_at, { year: false })}` : `Week of ${formatDate(s.weekStart, { year: false })} — awaiting CEO approval`}
+              tone={thisWeek?.approved_at ? "on" : "risk"}
+            />
+            {s.nextMeeting && <NextStep href={`${base}/meetings/${s.nextMeeting.id}`} label={MEETING_TYPE_LABEL[s.nextMeeting.type]} when={`${formatDate(s.nextMeeting.scheduled_at, { year: false })} · ${relativeDays(s.nextMeeting.scheduled_at)}`} />}
+            {nextReports.map((r) => (
+              <NextStep key={`${r.kind}${r.periodStart}`} href={`${base}/reporting`} label={`${REPORT_META[r.kind].short} · ${r.periodLabel}`} when={`${r.state === "overdue" ? "Overdue — was due" : "Due"} ${formatDate(r.due, { year: false })}`} tone={r.state === "overdue" ? "off" : undefined} />
+            ))}
+            {s.nextBoard && s.nextBoard.id !== s.nextMeeting?.id && <NextStep href={`${base}/meetings/${s.nextBoard.id}`} label={MEETING_TYPE_LABEL[s.nextBoard.type]} when={formatDate(s.nextBoard.scheduled_at, { year: false })} />}
+            <NextStep
+              href={`${base}/quarterly-reset`}
+              label="Quarterly offsite"
+              when={s.nextOffsite ? `${formatDate(s.nextOffsite.scheduled_at)} · ${relativeDays(s.nextOffsite.scheduled_at)}` : "Not scheduled"}
+              tone={s.nextOffsite ? undefined : "risk"}
+            />
+          </ul>
         </Card>
       </div>
 
       {ctx.can.omni && <OmniPanel supabase={ctx.supabase} companyId={ctx.company.companyId} currency={cur} />}
 
-      {s.exceptions.length > 0 && (
-        <p className="text-center text-xs text-muted-foreground">
-          {s.exceptions.length} KPI exceptions this period:{" "}
-          {s.exceptions
-            .slice(0, 6)
-            .map((e) => `${e.metric.name} (${exceptionReason(e).toLowerCase()})`)
-            .join(", ")}
-          {s.exceptions.length > 6 ? "…" : ""}
-        </p>
-      )}
     </div>
   );
 }
@@ -409,5 +460,26 @@ function Destination({ label, target, now, pct }: { label: string; target: strin
         <p className="mt-1 text-[11px] text-muted-foreground">{now ?? "Target at exit"}</p>
       )}
     </div>
+  );
+}
+
+function Stat({ label, value, tone }: { label: string; value: number; tone?: "risk" }) {
+  return (
+    <div className="rounded-md bg-muted/50 px-2 py-2">
+      <dd className={cn("text-lg font-semibold tabular", tone === "risk" && "text-risk-ink")}>{value}</dd>
+      <dt className="text-[11px] text-muted-foreground">{label}</dt>
+    </div>
+  );
+}
+
+function NextStep({ href, label, when, tone }: { href: string; label: string; when: string; tone?: "on" | "risk" | "off" }) {
+  return (
+    <li>
+      <Link href={href} className="flex items-center gap-2 px-4 py-2 hover:bg-accent/50">
+        <span className={cn("size-1.5 shrink-0 rounded-full", tone === "on" ? "bg-on" : tone === "risk" ? "bg-risk" : tone === "off" ? "bg-off" : "bg-muted-foreground/40")} aria-hidden />
+        <span className="min-w-0 flex-1 truncate font-medium">{label}</span>
+        <span className={cn("shrink-0 text-[11.5px] text-muted-foreground", tone === "off" && "text-off-ink")}>{when}</span>
+      </Link>
+    </li>
   );
 }

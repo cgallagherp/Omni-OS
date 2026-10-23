@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarPlus, Radio } from "lucide-react";
+import { CalendarPlus, Radio, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { getCompanyContext } from "@/lib/auth";
 import { loadCompanySnapshot } from "@/lib/data/snapshot";
 import { formatDate, formatDateTime, relativeDays } from "@/lib/domain/format";
@@ -11,17 +12,23 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScheduleMeetingDialog, StartMeetingButton, StartNowButton } from "@/components/meetings/meeting-buttons";
 
-export const metadata: Metadata = { title: "Rhythm" };
+export const metadata: Metadata = { title: "Meetings & Rhythm" };
 
 const CADENCE = [
-  { type: "weekly", label: "Weekly leadership meeting", detail: "90 minutes · KPI exceptions, priorities, actions, issues" },
-  { type: "monthly", label: "Monthly operating review", detail: "Financial & operational performance vs plan" },
-  { type: "quarterly", label: "Quarterly strategic reset", detail: "Close the quarter, approve the next 90 days" },
-  { type: "annual", label: "Annual strategic planning", detail: "Refresh the North Star, Winning Moves and budget" },
+  { type: "weekly", label: "Weekly ELT meeting", detail: "Scorecard (exceptions only) · 90-day priorities · issues · actions" },
+  { type: "board_monthly", label: "Monthly Board", detail: "One-hour Board with the one-page check-in" },
+  { type: "board_quarterly", label: "Quarterly Board", detail: "Full Board pack · papers 3 working days before" },
+  { type: "quarterly", label: "Quarterly offsite", detail: "Review the last 90 days and set the next ~3 priorities" },
+  { type: "annual", label: "Annual strategy reset", detail: "North Star → Flight Plan → 12-month objectives → budget" },
 ] as const;
 
-export default async function MeetingsPage({ params }: { params: Promise<{ slug: string }> }) {
+/** Escapes LIKE wildcards in user input. */
+const like = (q: string) => `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
+export default async function MeetingsPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ q?: string }> }) {
   const { slug } = await params;
+  const { q: rawQ } = await searchParams;
+  const q = (rawQ ?? "").trim().slice(0, 100);
   const ctx = await getCompanyContext(slug);
   const snap = await loadCompanySnapshot(ctx.supabase, ctx.company.companyId);
   const cid = ctx.company.companyId;
@@ -43,12 +50,22 @@ export default async function MeetingsPage({ params }: { params: Promise<{ slug:
   const history = all.filter((m) => m.status === "completed");
   const crew = (snap?.crew ?? []).map((c) => ({ id: c.id, full_name: c.full_name, title: c.title, is_open_seat: c.is_open_seat }));
 
+  // Permanent, searchable record: meetings, decisions, actions and agenda notes.
+  const results = q
+    ? await Promise.all([
+        ctx.supabase.from("meetings").select("id, title, scheduled_at, summary").eq("company_id", cid).or(`title.ilike.${JSON.stringify(like(q))},summary.ilike.${JSON.stringify(like(q))},notes.ilike.${JSON.stringify(like(q))}`).order("scheduled_at", { ascending: false }).limit(20),
+        ctx.supabase.from("decisions").select("id, title, decided_on, meeting_id").eq("company_id", cid).ilike("title", like(q)).order("decided_on", { ascending: false }).limit(20),
+        ctx.supabase.from("actions").select("id, title, due_date, status, meeting_id").eq("company_id", cid).ilike("title", like(q)).order("created_at", { ascending: false }).limit(20),
+        ctx.supabase.from("meeting_agenda_items").select("id, title, notes, meeting_id").eq("company_id", cid).ilike("notes", like(q)).limit(20),
+      ])
+    : null;
+
   return (
     <div className="fade-in">
       <PageHeader
-        eyebrow="Rhythm"
-        title="Management meetings"
-        description="The operating cadence that turns the plan into weekly execution. Agendas are prepared automatically from the Scoreboard, Flight Plan and open issues."
+        eyebrow="Mission Control · Rhythm"
+        title="Meetings & Rhythm"
+        description="The meeting and reporting cadence that turns the plan into weekly execution. Agendas are prepared automatically from the scorecard, 90-day priorities and open issues; everything is updated in the meeting and kept as a permanent record."
         actions={
           ctx.can.write && (
             <>
@@ -61,12 +78,49 @@ export default async function MeetingsPage({ params }: { params: Promise<{ slug:
 
       {live.map((m) => (
         <Link key={m.id} href={`/c/${slug}/meetings/${m.id}`} className="mb-5 flex items-center gap-3 rounded-lg border border-off/40 bg-off-bg/60 px-4 py-3 hover:bg-off-bg">
-          <Radio className="size-4 text-off" />
+          <Radio className="size-4 text-off-ink" />
           <span className="font-medium">{m.title} is in progress</span>
           <span className="text-sm text-muted-foreground">started {formatDateTime(m.started_at)}</span>
           <span className="ml-auto text-sm font-medium">Rejoin →</span>
         </Link>
       ))}
+
+      <form className="mb-5 flex max-w-xl gap-2" role="search">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute top-2 left-2.5 size-4 text-muted-foreground" />
+          <Input name="q" defaultValue={q} placeholder="Search meetings, decisions, actions and notes…" aria-label="Search meeting history" className="pl-8" />
+        </div>
+        <Button type="submit" variant="outline">Search</Button>
+        {q && (
+          <Button asChild variant="ghost">
+            <Link href={`/c/${slug}/meetings`}>Clear</Link>
+          </Button>
+        )}
+      </form>
+
+      {results && (
+        <Card className="mb-5" data-testid="search-results">
+          <CardHeader>
+            <CardTitle>Results for “{q}”</CardTitle>
+            <span className="text-xs text-muted-foreground">{results.reduce((n, r) => n + (r.data?.length ?? 0), 0)} found</span>
+          </CardHeader>
+          <div className="divide-y text-sm">
+            {(results[0].data ?? []).map((m) => (
+              <SearchRow key={`m${m.id}`} kind="Meeting" href={`/c/${slug}/meetings/${m.id}`} title={m.title} meta={formatDate(m.scheduled_at)} detail={m.summary} />
+            ))}
+            {(results[1].data ?? []).map((d) => (
+              <SearchRow key={`d${d.id}`} kind="Decision" href={d.meeting_id ? `/c/${slug}/meetings/${d.meeting_id}` : `/c/${slug}/execution?view=decisions`} title={d.title} meta={formatDate(d.decided_on)} />
+            ))}
+            {(results[2].data ?? []).map((a) => (
+              <SearchRow key={`a${a.id}`} kind="Action" href={a.meeting_id ? `/c/${slug}/meetings/${a.meeting_id}` : `/c/${slug}/execution?view=actions`} title={a.title} meta={`${a.status} · due ${formatDate(a.due_date)}`} />
+            ))}
+            {(results[3].data ?? []).map((n) => (
+              <SearchRow key={`n${n.id}`} kind="Agenda note" href={`/c/${slug}/meetings/${n.meeting_id}`} title={n.title} detail={n.notes} />
+            ))}
+            {results.every((r) => !r.data?.length) && <p className="px-4 py-4 text-muted-foreground">Nothing matches.</p>}
+          </div>
+        </Card>
+      )}
 
       <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0 space-y-5">
@@ -96,7 +150,7 @@ export default async function MeetingsPage({ params }: { params: Promise<{ slug:
                 ))}
               </div>
             ) : (
-              <EmptyState className="m-4" title="Nothing scheduled" description="Schedule the next weekly leadership meeting to keep the rhythm." />
+              <EmptyState className="m-4" title="Nothing scheduled" description="Schedule the next weekly ELT meeting to keep the rhythm." />
             )}
           </Card>
 
@@ -167,5 +221,20 @@ export default async function MeetingsPage({ params }: { params: Promise<{ slug:
         </Card>
       </div>
     </div>
+  );
+}
+
+function SearchRow({ kind, href, title, meta, detail }: { kind: string; href: string; title: string; meta?: string; detail?: string | null }) {
+  return (
+    <Link href={href} className="flex items-start gap-3 px-4 py-2.5 hover:bg-accent/40">
+      <Badge variant="outline" className="mt-0.5 w-24 justify-center">
+        {kind}
+      </Badge>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{title}</span>
+        {detail && <span className="line-clamp-1 text-xs text-muted-foreground">{detail}</span>}
+      </span>
+      {meta && <span className="shrink-0 text-xs text-muted-foreground">{meta}</span>}
+    </Link>
   );
 }

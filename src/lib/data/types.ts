@@ -20,7 +20,14 @@ export type Meeting = Row<"meetings">;
 export type AgendaItem = Row<"meeting_agenda_items">;
 export type Milestone = Row<"milestones">;
 export type SuccessCondition = Row<"success_conditions">;
-export type OrgGap = Row<"org_gaps">;
+export type OrgAction = Row<"org_actions">;
+export type PriorityMilestone = Row<"priority_milestones">;
+export type WeeklyScorecard = Row<"weekly_scorecards">;
+export type BoardReport = Row<"board_reports">;
+export type ListeningRound = Row<"listening_rounds">;
+export type OnboardingMilestone = Row<"onboarding_milestones">;
+export type GovernanceItem = Row<"governance_items">;
+export type CompanyBrandingRow = Row<"company_branding">;
 export type Comment = Row<"comments">;
 export type AuditEntry = Row<"audit_log">;
 

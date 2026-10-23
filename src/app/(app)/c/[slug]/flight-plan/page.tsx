@@ -6,6 +6,7 @@ import { loadCompanySnapshot } from "@/lib/data/snapshot";
 import { formOptions } from "@/lib/data/options";
 import { formatDate, formatMetric, formatMoney } from "@/lib/domain/format";
 import { quarterLabel } from "@/lib/domain/quarters";
+import { fiscalYearStart } from "@/lib/domain/metrics";
 import { saveAnnualGoal, savePriority, saveWinningMove } from "@/lib/actions/flight-plan";
 import { PageHeader } from "@/components/os/page";
 import { Card } from "@/components/ui/card";
@@ -46,7 +47,17 @@ export default async function FlightPlanPage({ params, searchParams }: { params:
     const a = (actions ?? []).filter((x) => x.quarterly_priority_id === pid);
     return { open: a.filter((x) => x.status === "open").length, overdue: a.filter((x) => x.status === "open" && x.due_date && x.due_date < today).length };
   };
-  const max = (snap.company.settings as { max_winning_moves?: number })?.max_winning_moves ?? 5;
+  const settings = (snap.company.settings ?? {}) as { max_three_year_outcomes?: number; priority_target?: number; max_priorities?: number };
+  const max = settings.max_three_year_outcomes ?? 5;
+  const priorityTarget = settings.priority_target ?? 3;
+  const activePriorities = snap.priorities.filter((p) => p.outcome !== "stopped");
+  const fyStartIso = fiscalYearStart(snap.now, snap.company.fiscal_year_start_month);
+  const fyStart = new Date(`${fyStartIso}T00:00:00Z`);
+  const fyEndIso = new Date(Date.UTC(fyStart.getUTCFullYear() + 1, fyStart.getUTCMonth(), 0)).toISOString().slice(0, 10);
+  const milestoneCount = (pid: string) => {
+    const ms = snap.priorityMilestones.filter((m) => m.priority_id === pid);
+    return ms.length ? `${ms.filter((m) => m.done).length}/${ms.length} milestones` : null;
+  };
   const cur = snap.company.currency;
   const ns = snap.northStar;
   const mode = view === "roadmap" ? "roadmap" : "hierarchy";
@@ -56,7 +67,7 @@ export default async function FlightPlanPage({ params, searchParams }: { params:
       <PageHeader
         eyebrow="Flight Plan"
         title="How we get there"
-        description="North Star → Winning Moves → Annual Goals → Quarterly Priorities → Actions. Every priority connects to an annual goal and, through it, the North Star."
+        description="North Star → Three-Year Outcomes → 12-Month Objectives → 90-Day Priorities → Actions. Every priority connects to a 12-month objective and, through it, the North Star."
         actions={
           <>
             <div className="inline-flex h-8 items-center gap-0.5 rounded-lg bg-muted p-0.5">
@@ -67,7 +78,7 @@ export default async function FlightPlanPage({ params, searchParams }: { params:
               ))}
             </div>
             {ctx.can.write && snap.winningMoves.length < max && (
-              <WinningMoveDialog trigger={<Button size="sm"><Plus /> Winning Move</Button>} action={saveWinningMove.bind(null, cid, null)} crew={options.crew} />
+              <WinningMoveDialog trigger={<Button size="sm"><Plus /> Three-Year Outcome</Button>} action={saveWinningMove.bind(null, cid, null)} crew={options.crew} />
             )}
           </>
         }
@@ -75,7 +86,7 @@ export default async function FlightPlanPage({ params, searchParams }: { params:
 
       {ns && (
         <Link href={`/c/${slug}/north-star`} className="mb-4 flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:border-foreground/20">
-          <Compass className="size-5 text-brand" />
+          <Compass className="size-5 text-brand-ink" />
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">North Star · FY{ns.target_year}</p>
             <p className="truncate text-sm font-medium">{ns.vision}</p>
@@ -109,8 +120,28 @@ export default async function FlightPlanPage({ params, searchParams }: { params:
         />
       ) : (
         <div className="space-y-4">
+          {snap.activeQuarter && (
+            <div
+              className={cn(
+                "flex flex-col gap-1 rounded-lg border px-4 py-2.5 text-[13px] sm:flex-row sm:items-center sm:gap-3",
+                activePriorities.length > priorityTarget ? "border-risk/50 bg-risk-bg/50" : "bg-card",
+              )}
+              data-testid="priority-focus"
+            >
+              <span className="font-medium">
+                {quarterLabel(snap.activeQuarter)}: {activePriorities.length} 90-day priorit{activePriorities.length === 1 ? "y" : "ies"}
+              </span>
+              <span className="text-muted-foreground">
+                {activePriorities.length > priorityTarget
+                  ? `Omni guidance is about ${priorityTarget}. More priorities dilute focus — consider stopping or combining some at the next offsite.`
+                  : activePriorities.length === 0
+                    ? "No priorities yet — agree about three, each with one owner, a defined outcome and measurable success criteria."
+                    : `Focus on less: about ${priorityTarget}, each with one owner, a defined outcome, success criteria, milestones and a deadline.`}
+              </span>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground">
-            {snap.winningMoves.length} of {max} Winning Moves · FY{snap.fiscalYear} · showing priorities for {fyQuarters.filter((q) => q.status !== "closed").map((q) => quarterLabel(q)).join(", ")}
+            {snap.winningMoves.length} of {max} Three-Year Outcomes · FY{snap.fiscalYear} · showing priorities for {fyQuarters.filter((q) => q.status !== "closed").map((q) => quarterLabel(q)).join(", ")}
           </p>
           {snap.winningMoves.map((w, i) => {
             const goals = snap.annualGoals.filter((g) => g.winning_move_id === w.id);
@@ -173,11 +204,12 @@ export default async function FlightPlanPage({ params, searchParams }: { params:
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                   {st.open > 0 && (
-                                    <span className={cn(st.overdue && "text-off")}>
+                                    <span className={cn(st.overdue && "text-off-ink")}>
                                       {st.open} action{st.open > 1 ? "s" : ""}
                                       {st.overdue ? ` · ${st.overdue} overdue` : ""}
                                     </span>
                                   )}
+                                  {milestoneCount(p.id) && <span className="hidden md:inline">{milestoneCount(p.id)}</span>}
                                   <span className="hidden sm:inline">Due {formatDate(p.due_date, { year: false })}</span>
                                   <Owner person={snap.crewById.get(p.owner_id)} />
                                   <InlineProgress companyId={cid} entity="quarterly_priority" id={p.id} progress={p.progress} canWrite={ctx.can.write} />
@@ -204,20 +236,20 @@ export default async function FlightPlanPage({ params, searchParams }: { params:
                       </div>
                     );
                   })}
-                  {goals.length === 0 && <p className="px-4 py-3 text-sm text-muted-foreground sm:pl-[52px]">No annual goals for FY{snap.fiscalYear} yet.</p>}
+                  {goals.length === 0 && <p className="px-4 py-3 text-sm text-muted-foreground sm:pl-[52px]">No 12-month objectives for FY{snap.fiscalYear} yet.</p>}
                   {ctx.can.write && (
                     <div className="px-4 py-2 sm:pl-[52px]">
                       <AnnualGoalDialog
                         trigger={
                           <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                            <Plus className="size-3" /> Add annual goal
+                            <Plus className="size-3" /> Add 12-month objective
                           </button>
                         }
                         action={saveAnnualGoal.bind(null, cid, null)}
                         crew={options.crew}
                         moves={options.moves}
                         fiscalYear={snap.fiscalYear}
-                        defaults={{ winning_move_id: w.id, owner_id: w.owner_id, start_date: `${snap.fiscalYear}-01-01`, due_date: `${snap.fiscalYear}-12-31` }}
+                        defaults={{ winning_move_id: w.id, owner_id: w.owner_id, start_date: fyStartIso, due_date: fyEndIso }}
                       />
                     </div>
                   )}
@@ -225,7 +257,7 @@ export default async function FlightPlanPage({ params, searchParams }: { params:
               </Card>
             );
           })}
-          {snap.winningMoves.length >= max && <p className="text-xs text-muted-foreground">The Winning Move limit ({max}) is reached — focus on less. Administrators can change the limit in Settings.</p>}
+          {snap.winningMoves.length >= max && <p className="text-xs text-muted-foreground">The Three-Year Outcome limit ({max}) is reached — focus on less. Administrators can change the limit in Settings.</p>}
         </div>
       )}
     </div>

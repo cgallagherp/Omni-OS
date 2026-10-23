@@ -8,6 +8,16 @@ export type CompanyRole = Database["public"]["Enums"]["company_role"];
 export type PlatformRole = Database["public"]["Enums"]["platform_role"];
 export type PermissionLevel = "read" | "write" | "admin" | "omni";
 
+export interface CompanyBranding {
+  primary: string | null;
+  secondary: string | null;
+  accent: string | null;
+  /** URL of the company logo (versioned), or null to use the company mark */
+  logoUrl: string | null;
+  logoWidth: number | null;
+  logoHeight: number | null;
+}
+
 export interface CompanyAccess {
   companyId: string;
   slug: string;
@@ -16,6 +26,7 @@ export interface CompanyAccess {
   brandColor: string;
   isDemo: boolean;
   role: CompanyRole;
+  branding: CompanyBranding;
 }
 
 export interface Viewer {
@@ -36,7 +47,7 @@ export class PermissionError extends Error {
   }
 }
 
-const RANK: Record<CompanyRole, number> = { observer: 0, executive: 1, company_admin: 2, omni: 3 };
+const RANK: Record<CompanyRole, number> = { observer: 0, executive: 1, company_admin: 2, ceo: 2, omni: 3 };
 
 export function roleAllows(role: CompanyRole, level: PermissionLevel): boolean {
   switch (level) {
@@ -45,7 +56,7 @@ export function roleAllows(role: CompanyRole, level: PermissionLevel): boolean {
     case "write":
       return RANK[role] >= RANK.executive;
     case "admin":
-      return role === "company_admin" || role === "omni";
+      return role === "company_admin" || role === "ceo" || role === "omni";
     case "omni":
       return role === "omni";
   }
@@ -53,9 +64,10 @@ export function roleAllows(role: CompanyRole, level: PermissionLevel): boolean {
 
 export const roleLabel: Record<CompanyRole, string> = {
   omni: "Omni team",
-  company_admin: "Company admin",
+  ceo: "CEO",
+  company_admin: "Company administrator",
   executive: "Executive",
-  observer: "Observer",
+  observer: "Chair / Board observer",
 };
 
 /** Loads the signed-in user and their company access. Cached per request. */
@@ -82,11 +94,24 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     .select("id, slug, name, sector, brand_color, is_demo")
     .order("name");
 
+  const { data: brandings } = await supabase
+    .from("company_branding")
+    .select("company_id, primary_color, secondary_color, accent_color, logo_mime, logo_updated_at, logo_width, logo_height");
+  const brandingBy = new Map((brandings ?? []).map((b) => [b.company_id, b]));
   const roleByCompany = new Map((memberships ?? []).map((m) => [m.company_id, m.role]));
   const access: CompanyAccess[] = (companies ?? []).flatMap((c) => {
     const role = roleByCompany.get(c.id) ?? (isPlatformAdmin ? ("omni" as const) : undefined);
     if (!role) return [];
-    return [{ companyId: c.id, slug: c.slug, name: c.name, sector: c.sector, brandColor: c.brand_color, isDemo: c.is_demo, role }];
+    const b = brandingBy.get(c.id);
+    const branding: CompanyBranding = {
+      primary: b?.primary_color ?? null,
+      secondary: b?.secondary_color ?? null,
+      accent: b?.accent_color ?? null,
+      logoUrl: b?.logo_mime ? `/brand/logo/${c.id}?v=${encodeURIComponent(b.logo_updated_at ?? "1")}` : null,
+      logoWidth: b?.logo_width ?? null,
+      logoHeight: b?.logo_height ?? null,
+    };
+    return [{ companyId: c.id, slug: c.slug, name: c.name, sector: c.sector, brandColor: b?.primary_color ?? c.brand_color, isDemo: c.is_demo, role, branding }];
   });
 
   return {

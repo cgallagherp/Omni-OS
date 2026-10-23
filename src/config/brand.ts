@@ -1,13 +1,20 @@
+import { OMNI, OMNI_DEFAULT_BRANDING } from "@/lib/domain/brand";
+
 /**
- * Brand configuration. Official Omni brand values have not been supplied, so the
- * accent colour is read from NEXT_PUBLIC_BRAND_PRIMARY (placeholder default) and
- * used sparingly for focus, selection and primary highlights.
+ * Omni identity — the default visual identity of Omni OS, taken from the
+ * Chair & CEO Briefing (v4). Portfolio companies can override the colours and
+ * logo for their own workspace in Settings → Appearance & Branding; the Omni
+ * portfolio views always use these values.
  */
 export const brand = {
   name: "Omni",
   product: "Omni OS",
   tagline: "Begin with the buyer. Focus on less. Execute every week.",
-  primary: process.env.NEXT_PUBLIC_BRAND_PRIMARY || "#F26A21",
+  palette: OMNI,
+  defaults: OMNI_DEFAULT_BRANDING,
+  logo: { src: "/brand/omni-logo.png", width: 960, height: 298 },
+  logoOnDark: { src: "/brand/omni-logo-white.png", width: 960, height: 298 },
+  mark: { src: "/brand/omni-mark.png", width: 298, height: 298 },
 };
 
 export const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";

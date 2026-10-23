@@ -151,7 +151,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ slug: 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-1.5">
-                <Gavel className="size-3.5 text-done" /> Decisions ({bundle.decisions.length})
+                <Gavel className="size-3.5 text-done-ink" /> Decisions ({bundle.decisions.length})
               </CardTitle>
             </CardHeader>
             <div className="divide-y">
@@ -169,13 +169,13 @@ export default async function MeetingPage({ params }: { params: Promise<{ slug: 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-1.5">
-                <ListPlus className="size-3.5 text-brand" /> Actions assigned ({bundle.newActions.length})
+                <ListPlus className="size-3.5 text-brand-ink" /> Actions assigned ({bundle.newActions.length})
               </CardTitle>
             </CardHeader>
             <div className="divide-y">
               {bundle.newActions.map((a) => (
                 <div key={a.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                  {a.status === "done" ? <CheckCircle2 className="size-4 text-on" /> : <span className="size-4 rounded-full border" />}
+                  {a.status === "done" ? <CheckCircle2 className="size-4 text-on-ink" /> : <span className="size-4 rounded-full border" />}
                   <span className={cn("flex-1", a.status === "done" && "text-muted-foreground line-through")}>{a.title}</span>
                   <Owner person={crewById.get(a.owner_id)} />
                   <span className="w-16 text-right text-xs text-muted-foreground">{formatDate(a.due_date, { year: false })}</span>
@@ -246,12 +246,12 @@ export default async function MeetingPage({ params }: { params: Promise<{ slug: 
             <div className="space-y-3 px-4 py-3 text-sm">
               {bundle.resolvedIssues.map((i) => (
                 <p key={i.id} className="flex gap-2">
-                  <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-on" /> {i.title}
+                  <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-on-ink" /> {i.title}
                 </p>
               ))}
               {bundle.raisedIssues.map((i) => (
                 <p key={i.id} className="flex gap-2">
-                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-risk" /> {i.title} <span className="text-xs text-muted-foreground">(raised)</span>
+                  <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-risk-ink" /> {i.title} <span className="text-xs text-muted-foreground">(raised)</span>
                 </p>
               ))}
               {carried.length > 0 && <p className="text-xs text-muted-foreground">{carried.length} issue(s) carried into the next meeting.</p>}

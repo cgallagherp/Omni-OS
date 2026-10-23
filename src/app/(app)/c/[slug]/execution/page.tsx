@@ -149,7 +149,7 @@ export default async function ExecutionPage({ params, searchParams }: { params: 
                     </div>
                     <div className="flex items-center gap-3 pl-8 sm:pl-0">
                       <Owner person={snap.crewById.get(a.owner_id)} className="w-24" />
-                      <span className={cn("w-28 text-right text-xs tabular", overdue ? "font-medium text-off" : "text-muted-foreground")}>
+                      <span className={cn("w-28 text-right text-xs tabular", overdue ? "font-medium text-off-ink" : "text-muted-foreground")}>
                         {a.status === "done" ? `Done ${formatDate(a.completed_at, { year: false })}` : overdue ? `Overdue · ${relativeDays(a.due_date)}` : `Due ${formatDate(a.due_date, { year: false })}`}
                       </span>
                       {ctx.can.write && (

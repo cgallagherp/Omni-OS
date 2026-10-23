@@ -12,11 +12,23 @@ import { Progress } from "@/components/ui/progress";
 import { PageHeader, EmptyState } from "@/components/os/page";
 import { Owner } from "@/components/os/avatar";
 import { StatusBadge, StatusDot } from "@/components/os/status";
-import { ConditionDialog, MilestoneDialog, NorthStarDialog } from "@/components/north-star/forms";
+import { ConditionDialog, MilestoneDialog, NorthStarDialog, type NorthStarValues } from "@/components/north-star/forms";
 import { TrajectoryChart, type TrajectoryPoint } from "@/components/north-star/trajectory-chart";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "North Star" };
+
+const EMPTY_NS = {
+  vision: "",
+  mission: "",
+  target_end_state: "",
+  strategic_positioning: "",
+  market_opportunity: "",
+  financial_ambition: "",
+  exit_equity_story: "",
+  buyer_proposition: "",
+  strategic_value: "",
+};
 
 export default async function NorthStarPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -89,29 +101,36 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
     return { m, lane, x };
   });
 
+  const values = (ns?.values as NorthStarValues["values"]) ?? [];
+  const buyers = (ns?.potential_buyers as string[]) ?? [];
+  const conditionCount = conditions?.length ?? 0;
+
   return (
     <div className="fade-in">
       <PageHeader
         eyebrow="North Star"
         title="Where are we going?"
-        description="The destination for the investment period: purpose, ambition, the equity story for the eventual buyer, and the conditions that must be true."
+        description="Vision, Mission and Values; the destination for the investment period; the equity story for the eventual buyer; and the conditions that must be true."
         actions={
-          ctx.can.admin &&
-          ns && (
+          ctx.can.admin && (
             <NorthStarDialog
               companyId={cid}
               values={{
-                ...ns,
-                target_revenue: num(ns.target_revenue),
-                target_ebitda: num(ns.target_ebitda),
-                target_ev: num(ns.target_ev),
-                baseline_revenue: num(ns.baseline_revenue),
-                baseline_ebitda: num(ns.baseline_ebitda),
-                assumptions: (ns.assumptions as string[]) ?? [],
+                ...EMPTY_NS,
+                ...(ns ?? {}),
+                values: ((ns?.values as NorthStarValues["values"]) ?? []),
+                potential_buyers: ((ns?.potential_buyers as string[]) ?? []),
+                target_year: ns?.target_year ?? null,
+                target_revenue: num(ns?.target_revenue),
+                target_ebitda: num(ns?.target_ebitda),
+                target_ev: num(ns?.target_ev),
+                baseline_revenue: num(ns?.baseline_revenue),
+                baseline_ebitda: num(ns?.baseline_ebitda),
+                assumptions: (ns?.assumptions as string[]) ?? [],
               }}
               trigger={
                 <Button size="sm">
-                  <Pencil /> Edit North Star
+                  <Pencil /> {ns ? "Edit North Star" : "Define North Star"}
                 </Button>
               }
             />
@@ -119,19 +138,47 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
         }
       />
       {!ns ? (
-        <EmptyState title="No North Star defined yet" description="A company administrator can define the North Star." />
+        <EmptyState title="No North Star defined yet" description="The CEO or a company administrator can define the Vision, Mission, Values and destination." />
       ) : (
         <div className="space-y-5">
+          <Card className="overflow-hidden" data-testid="vmv">
+            <div className="grid [&>*]:min-w-0 lg:grid-cols-3 lg:divide-x">
+              <div className="p-6">
+                <Block label="Vision" text={ns.vision} large />
+              </div>
+              <div className="p-6">
+                <Block label="Mission" text={ns.mission} large />
+              </div>
+              <div className="p-6">
+                <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">Values</p>
+                {values.length ? (
+                  <ul className="mt-2 space-y-2">
+                    {values.map((v) => (
+                      <li key={v.name} className="text-sm">
+                        <span className="font-medium">{v.name}</span>
+                        {v.description && <span className="text-muted-foreground"> — {v.description}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1.5 text-sm text-muted-foreground italic">Not yet defined</p>
+                )}
+              </div>
+            </div>
+          </Card>
+
           <Card className="overflow-hidden">
             <div className="grid [&>*]:min-w-0 lg:grid-cols-[1.3fr_1fr]">
               <div className="space-y-4 p-6 lg:border-r">
-                <Block label="Purpose" text={ns.purpose} />
-                <Block label="Vision" text={ns.vision} large />
-                <Block label="Five-year ambition" text={ns.five_year_ambition} />
-                <Block label={`Three-year value creation destination · FY${ns.target_year}`} text={ns.three_year_destination} />
+                <Block label={`Target end-state${ns.target_year ? ` · FY${ns.target_year}` : ""}`} text={ns.target_end_state} large />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Block label="Strategic positioning" text={ns.strategic_positioning} />
+                  <Block label="Market opportunity" text={ns.market_opportunity} />
+                </div>
+                <Block label="Financial ambition" text={ns.financial_ambition} />
               </div>
               <div className="bg-muted/30 p-6">
-                <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">Target financial profile</p>
+                <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">Revenue and EBITDA targets</p>
                 <div className="mt-3 grid grid-cols-3 gap-4">
                   <Fin label="Revenue" from={ns.baseline_revenue} to={ns.target_revenue} cur={cur} />
                   <Fin label="EBITDA" from={ns.baseline_ebitda} to={ns.target_ebitda} cur={cur} />
@@ -157,13 +204,32 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
               </CardHeader>
               <CardContent className="space-y-4">
                 <Block label="Equity story" text={ns.exit_equity_story} />
+                <Block label="What makes the company strategically valuable" text={ns.strategic_value} />
                 <Block label="Buyer proposition" text={ns.buyer_proposition} />
-                <Block label="Investment thesis" text={ns.investment_thesis} />
+                <div>
+                  <p className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">Potential buyers</p>
+                  {buyers.length ? (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {buyers.map((b) => (
+                        <Badge key={b} variant="outline">
+                          {b}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-muted-foreground italic">Not yet defined</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Conditions for success</CardTitle>
+                <CardTitle>
+                  Conditions for success{" "}
+                  {conditionCount > 0 && (conditionCount < 3 || conditionCount > 5) && (
+                    <span className="ml-1 text-xs font-normal text-risk-ink">Omni guidance is three to five ({conditionCount} defined)</span>
+                  )}
+                </CardTitle>
                 {ctx.can.write && <ConditionDialog companyId={cid} crew={options.crew} trigger={<Button variant="ghost" size="xs"><Plus /> Add</Button>} />}
               </CardHeader>
               <div className="divide-y">
@@ -207,7 +273,7 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
                     </span>
                   ))}
                   <span className="absolute -top-2 h-4 w-0.5 rounded bg-brand" style={{ left: `${todayPos}%` }} title="Today" />
-                  <span className="absolute -top-6 -translate-x-1/2 text-[10px] font-medium text-brand" style={{ left: `${todayPos}%` }}>
+                  <span className="absolute -top-6 -translate-x-1/2 text-[10px] font-medium text-brand-ink" style={{ left: `${todayPos}%` }}>
                     Today
                   </span>
                 </div>
@@ -220,7 +286,7 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
                     <div key={m.id}>
                       <span className="absolute w-px bg-border" style={{ left: `${x}%`, top: up ? 100 - stem : 100, height: stem }} />
                       <Diamond
-                        className={cn("absolute size-3.5 -translate-x-1/2 -translate-y-1/2", m.status === "done" ? "fill-done text-done" : m.status === "at_risk" || m.status === "off_track" ? "fill-risk text-risk" : m.status === "on_track" ? "fill-on text-on" : "fill-card text-muted-foreground")}
+                        className={cn("absolute size-3.5 -translate-x-1/2 -translate-y-1/2", m.status === "done" ? "fill-done text-done-ink" : m.status === "at_risk" || m.status === "off_track" ? "fill-risk text-risk-ink" : m.status === "on_track" ? "fill-on text-on-ink" : "fill-card text-muted-foreground")}
                         style={{ left: `${x}%`, top: 100 }}
                       />
                       <div className="absolute w-36 -translate-x-1/2 text-center" style={{ left: `${label}%`, top: up ? 100 - stem - 34 : 100 + stem }}>
@@ -247,7 +313,7 @@ export default async function NorthStarPage({ params }: { params: Promise<{ slug
           <div className="grid gap-5 [&>*]:min-w-0 lg:grid-cols-[1fr_380px]">
             <Card>
               <CardHeader>
-                <CardTitle>Supporting Winning Moves</CardTitle>
+                <CardTitle>Supporting Three-Year Outcomes</CardTitle>
                 <Link href={`/c/${slug}/flight-plan`} className="text-xs text-muted-foreground hover:text-foreground">
                   Flight Plan →
                 </Link>

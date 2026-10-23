@@ -52,5 +52,5 @@ test("editing the North Star saves a new permanent version", async ({ page }) =>
   await expect(page.getByText("North Star updated")).toBeVisible();
   await expect(page.getByText("£21.0m").first()).toBeVisible();
   await expect(page.getByText("Raised EBITDA target after board review")).toBeVisible();
-  await expect(page.getByText("Agreed at investment completion")).toBeVisible();
+  await expect(page.getByText("Agreed at the leadership offsite")).toBeVisible();
 });

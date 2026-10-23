@@ -113,7 +113,7 @@ export function MetricDialog({ companyId, id, crew, defaults = {}, trigger, titl
             </Field>
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="is_key" defaultChecked={defaults.is_key} className="size-4 accent-[var(--brand)]" /> Show on the Blueprint scoreboard
+            <input type="checkbox" name="is_key" defaultChecked={defaults.is_key} className="size-4 accent-brand" /> Show on the Blueprint scoreboard
           </label>
         </>
       )}
@@ -143,7 +143,7 @@ export function LinkObjectivesDialog({
             <div className="space-y-1.5">
               {g.items.map((i) => (
                 <label key={i.value} className="flex items-start gap-2 text-sm">
-                  <input type="checkbox" name="link" value={i.value} defaultChecked={selected.includes(i.value)} className="mt-0.5 size-4 accent-[var(--brand)]" />
+                  <input type="checkbox" name="link" value={i.value} defaultChecked={selected.includes(i.value)} className="mt-0.5 size-4 accent-brand" />
                   {i.label}
                 </label>
               ))}
@@ -227,7 +227,7 @@ export function CsvImportDialog({ companyId }: { companyId: string }) {
                         <td className="px-2 py-1">{r.metric}</td>
                         <td className="px-2 py-1">{r.period}</td>
                         <td className="px-2 py-1 text-right tabular">{r.value ?? "—"}</td>
-                        <td className="px-3 py-1 text-off">{r.message}</td>
+                        <td className="px-3 py-1 text-off-ink">{r.message}</td>
                       </tr>
                     ))}
                   </tbody>

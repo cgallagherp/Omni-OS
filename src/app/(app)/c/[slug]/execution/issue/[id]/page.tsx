@@ -117,7 +117,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
                 <Link href={`/c/${slug}/flight-plan/quarterly_priority/${priority.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50">
                   <ListChecks className="size-4 text-muted-foreground" />
                   <span className="flex-1">
-                    <span className="block text-xs text-muted-foreground">Quarterly priority</span>
+                    <span className="block text-xs text-muted-foreground">90-day priority</span>
                     {priority.title}
                   </span>
                   <StatusBadge status={priority.status} />
@@ -127,7 +127,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
                 <Link href={`/c/${slug}/flight-plan/annual_goal/${goalRow.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50">
                   <span className="size-4" />
                   <span className="flex-1">
-                    <span className="block text-xs text-muted-foreground">Annual goal</span>
+                    <span className="block text-xs text-muted-foreground">12-month objective</span>
                     {goalRow.title}
                   </span>
                   <StatusBadge status={goalRow.status} />
@@ -137,7 +137,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
                 <Link href={`/c/${slug}/flight-plan/winning_move/${move.id}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50">
                   <span className="size-4" />
                   <span className="flex-1">
-                    <span className="block text-xs text-muted-foreground">Winning Move</span>
+                    <span className="block text-xs text-muted-foreground">Three-Year Outcome</span>
                     {move.title}
                   </span>
                   <StatusBadge status={move.status} />
@@ -150,7 +150,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-1.5">
-                <Gavel className="size-3.5 text-done" /> Decisions
+                <Gavel className="size-3.5 text-done-ink" /> Decisions
               </CardTitle>
               {ctx.can.write && issue.status !== "resolved" && (
                 <DecisionDialog trigger={<Button variant="ghost" size="xs"><Gavel /> Record</Button>} action={saveDecision.bind(null, cid, null)} crew={options.crew} issues={options.issues} defaults={{ issue_id: id, owner_id: issue.owner_id }} />
@@ -173,7 +173,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-1.5">
-                <ListPlus className="size-3.5 text-brand" /> Actions
+                <ListPlus className="size-3.5 text-brand-ink" /> Actions
               </CardTitle>
               {ctx.can.write && (
                 <ActionDialog trigger={<Button variant="ghost" size="xs"><ListPlus /> Assign</Button>} action={saveAction.bind(null, cid, null)} crew={options.crew} priorities={options.priorities} defaults={{ issue_id: id, owner_id: issue.owner_id, quarterly_priority_id: issue.quarterly_priority_id, decision_id: decisions?.at(-1)?.id }} />
@@ -185,7 +185,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
                   <ActionCheckbox companyId={cid} id={a.id} status={a.status} canWrite={ctx.can.write} />
                   <span className={cn("min-w-0 flex-1 text-[13px]", a.status !== "open" && "text-muted-foreground line-through")}>{a.title}</span>
                   <Owner person={snap.crewById.get(a.owner_id)} />
-                  <span className={cn("w-24 text-right text-xs", a.status === "open" && a.due_date && a.due_date < today ? "font-medium text-off" : "text-muted-foreground")}>{formatDate(a.due_date, { year: false })}</span>
+                  <span className={cn("w-24 text-right text-xs", a.status === "open" && a.due_date && a.due_date < today ? "font-medium text-off-ink" : "text-muted-foreground")}>{formatDate(a.due_date, { year: false })}</span>
                 </div>
               ))}
               {!actions?.length && <p className="px-4 py-3 text-sm text-muted-foreground">No actions yet.</p>}

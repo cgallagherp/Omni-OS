@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { UserPlus } from "lucide-react";
 import { getCompanyContext, roleLabel } from "@/lib/auth";
-import { PageHeader } from "@/components/os/page";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/os/avatar";
@@ -21,11 +20,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
     ctx.supabase.from("company_memberships").select("user_id, role, created_at, profiles(full_name, email, title)").eq("company_id", cid).order("created_at"),
   ]);
   if (!company) redirect("/");
-  const settings = (company.settings ?? {}) as { max_winning_moves?: number };
+  const settings = (company.settings ?? {}) as { max_three_year_outcomes?: number; priority_target?: number; max_priorities?: number };
 
   return (
-    <div className="fade-in max-w-5xl">
-      <PageHeader eyebrow="Settings" title={`${company.name} settings`} description="Company profile, operating rules and who has access." />
+    <div className="max-w-5xl">
       <div className="space-y-5">
         <Card>
           <CardHeader>
@@ -35,7 +33,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
           <CardContent>
             <CompanySettingsForm
               companyId={cid}
-              defaults={{ ...company, max_winning_moves: settings.max_winning_moves ?? 5 }}
+              defaults={{
+                ...company,
+                max_three_year_outcomes: settings.max_three_year_outcomes ?? 5,
+                priority_target: settings.priority_target ?? 3,
+                max_priorities: settings.max_priorities ?? 5,
+              }}
             />
           </CardContent>
         </Card>

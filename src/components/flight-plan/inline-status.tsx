@@ -3,7 +3,7 @@ import { NativeSelect } from "@/components/ui/input";
 import { useQuickAction } from "@/components/os/forms";
 import { StatusBadge } from "@/components/os/status";
 import { updatePlanItem, type PlanEntity } from "@/lib/actions/flight-plan";
-import { RAG_OPTIONS } from "@/lib/domain/status";
+import { PRIORITY_STATUS_OPTIONS, RAG_OPTIONS } from "@/lib/domain/status";
 import { cn } from "@/lib/utils";
 
 export function InlineStatus({ companyId, entity, id, status, canWrite, className }: { companyId: string; entity: PlanEntity; id: string; status: string; canWrite: boolean; className?: string }) {
@@ -18,14 +18,14 @@ export function InlineStatus({ companyId, entity, id, status, canWrite, classNam
       onChange={(e) => q.run(() => updatePlanItem(companyId, entity, id, { status: e.target.value }), "Status updated")}
       className={cn(
         "h-6 w-[104px] border-transparent bg-transparent px-1.5 text-xs font-medium shadow-none hover:border-input",
-        status === "on_track" && "text-on",
-        status === "at_risk" && "text-[color-mix(in_oklch,var(--status-risk)_80%,black)]",
-        (status === "off_track" || status === "missed") && "text-off",
-        status === "done" && "text-done",
+        status === "on_track" && "text-on-ink",
+        status === "at_risk" && "text-risk-ink",
+        (status === "off_track" || status === "missed") && "text-off-ink",
+        status === "done" && "text-done-ink",
         className,
       )}
     >
-      {RAG_OPTIONS.map((o) => (
+      {(entity === "quarterly_priority" ? PRIORITY_STATUS_OPTIONS : RAG_OPTIONS).map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>

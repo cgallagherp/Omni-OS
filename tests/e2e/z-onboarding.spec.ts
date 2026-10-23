@@ -45,7 +45,7 @@ test("onboard a company, then the new CEO signs in to their own workspace only",
   await page.goto(`/c/${slug}/scoreboard?view=monthly`);
   await expect(page.getByText("Net revenue retention")).toBeVisible();
   await page.goto(`/c/${slug}/meetings`);
-  await expect(page.getByText("Weekly Leadership Meeting").first()).toBeVisible();
+  await expect(page.getByText("Weekly ELT meeting").first()).toBeVisible();
 
   // Priya (Omni) is not assigned yet → cannot see it
   await signIn(page, "priya@omni.demo");

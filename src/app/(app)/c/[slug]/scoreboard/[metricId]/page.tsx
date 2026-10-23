@@ -71,14 +71,14 @@ export default async function MetricPage({ params }: { params: Promise<{ slug: s
 
   const links = snap.metricLinks.filter((l) => l.metric_id === metricId);
   const linkedItems = links.map((l) => {
-    if (l.winning_move_id) return { type: "winning_move", id: l.winning_move_id, label: "Winning Move", title: snap.winningMoves.find((w) => w.id === l.winning_move_id)?.title };
-    if (l.annual_goal_id) return { type: "annual_goal", id: l.annual_goal_id, label: "Annual goal", title: snap.annualGoals.find((g) => g.id === l.annual_goal_id)?.title };
-    return { type: "quarterly_priority", id: l.quarterly_priority_id!, label: "Quarterly priority", title: snap.priorities.find((p) => p.id === l.quarterly_priority_id)?.title };
+    if (l.winning_move_id) return { type: "winning_move", id: l.winning_move_id, label: "Three-Year Outcome", title: snap.winningMoves.find((w) => w.id === l.winning_move_id)?.title };
+    if (l.annual_goal_id) return { type: "annual_goal", id: l.annual_goal_id, label: "12-month objective", title: snap.annualGoals.find((g) => g.id === l.annual_goal_id)?.title };
+    return { type: "quarterly_priority", id: l.quarterly_priority_id!, label: "90-day priority", title: snap.priorities.find((p) => p.id === l.quarterly_priority_id)?.title };
   });
   const linkOptions = [
-    { group: "Winning Moves", items: snap.winningMoves.map((w) => ({ value: `winning_move:${w.id}`, label: w.title })) },
-    { group: `Annual goals · FY${snap.fiscalYear}`, items: snap.annualGoals.map((g) => ({ value: `annual_goal:${g.id}`, label: g.title })) },
-    { group: "Quarterly priorities", items: snap.priorities.map((p) => ({ value: `quarterly_priority:${p.id}`, label: p.title })) },
+    { group: "Three-Year Outcomes", items: snap.winningMoves.map((w) => ({ value: `winning_move:${w.id}`, label: w.title })) },
+    { group: `12-month objectives · FY${snap.fiscalYear}`, items: snap.annualGoals.map((g) => ({ value: `annual_goal:${g.id}`, label: g.title })) },
+    { group: "90-day priorities", items: snap.priorities.map((p) => ({ value: `quarterly_priority:${p.id}`, label: p.title })) },
   ];
   const selected = linkedItems.map((i) => `${i.type}:${i.id}`);
   const ytdSummary = m.aggregation === "flow" ? ytd(view.points.map((p) => ({ period_start: p.period, value: p.value, target: p.target })), fiscalYearStart(new Date(), snap.company.fiscal_year_start_month), m.target_value) : null;

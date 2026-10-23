@@ -5,16 +5,28 @@ import { exceptionReason, isException, type MetricView } from "./metric-view";
 export type AgendaSection = "kpi_exceptions" | "priorities" | "previous_actions" | "issues" | "discussion" | "new_actions";
 
 export const AGENDA_SECTIONS: Array<{ key: AgendaSection; label: string; description: string }> = [
-  { key: "kpi_exceptions", label: "KPI exceptions", description: "Metrics off track, at risk, deteriorating or not reported" },
-  { key: "priorities", label: "Quarterly priorities", description: "On track or off track — owners give a one-line update" },
-  { key: "previous_actions", label: "Previous actions", description: "Done or not done" },
-  { key: "issues", label: "Material issues", description: "Prioritise, discuss and resolve" },
-  { key: "discussion", label: "Discussion & decisions", description: "Decisions recorded in this meeting" },
-  { key: "new_actions", label: "New actions", description: "Commitments with owners and deadlines" },
+  { key: "kpi_exceptions", label: "Scorecard", description: "Exceptions only — KPIs off track, at risk, deteriorating or not reported" },
+  { key: "priorities", label: "90-day priorities", description: "Concise updates from each owner, with evidence" },
+  { key: "issues", label: "Issues", description: "Prioritise, discuss and resolve" },
+  { key: "previous_actions", label: "Actions carried over", description: "Done or not done" },
+  { key: "discussion", label: "Decisions", description: "Decisions recorded in this meeting, each with one owner" },
+  { key: "new_actions", label: "New actions", description: "Commitments with one owner and a deadline" },
+];
+
+/**
+ * The weekly ELT agenda has four parts (Omni Operating System, Mission
+ * Control): Scorecard → 90-day priorities → Issues → Actions. The stored
+ * section keys are finer-grained so meeting history keeps its structure.
+ */
+export const AGENDA_GROUPS: Array<{ key: string; label: string; description: string; sections: AgendaSection[] }> = [
+  { key: "scorecard", label: "1 · Scorecard", description: "Exceptions only", sections: ["kpi_exceptions"] },
+  { key: "priorities", label: "2 · 90-day priorities", description: "Concise updates and evidence", sections: ["priorities"] },
+  { key: "issues", label: "3 · Issues", description: "Prioritise, discuss, resolve", sections: ["issues"] },
+  { key: "actions", label: "4 · Actions", description: "Decisions and actions — one owner and a deadline each", sections: ["previous_actions", "discussion", "new_actions"] },
 ];
 
 export interface AgendaInput {
-  meetingType: "weekly" | "monthly" | "quarterly" | "annual";
+  meetingType: "weekly" | "monthly" | "quarterly" | "annual" | "board_monthly" | "board_quarterly";
   metrics: MetricView<{
     id: string;
     name: string;
@@ -84,7 +96,7 @@ export function buildAgenda(input: AgendaInput): AgendaItemDraft[] {
     });
   }
 
-  // 2. Quarterly priorities: off track first
+  // 2. 90-day priorities: off track first
   for (const p of [...input.priorities].sort((a, b) => (statusRank[a.status] ?? 5) - (statusRank[b.status] ?? 5))) {
     items.push({
       section: "priorities",

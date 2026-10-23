@@ -4,51 +4,80 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Omni OS design tokens. The brand accent comes from NEXT_PUBLIC_BRAND_PRIMARY
- * (injected as --brand in the root layout); the value below is a fallback only.
+ * Omni OS design tokens — official Omni palette (Chair & CEO Briefing v4):
+ * Orange #F54E00 · Red #E30000 · Yellow #FFC02B · Teal #17A1BD · Blue #0C4AAD ·
+ * Charcoal #2E3331 · Grey #5B625F · Light grey #F1F2F2 · White.
+ * The --brand-* values below are the Omni defaults. Company workspaces override
+ * them at runtime with tokens derived from the company's saved branding
+ * (src/lib/domain/brand.ts → deriveBrandTokens); status colours never change.
  */
 :root {
-  --brand: #f26a21;
+  --brand: #f54e00;
   --brand-foreground: #ffffff;
+  --brand-hover: #dd4600;
+  --brand-ink: #c43e00;
+  --brand-subtle: #fef1eb;
+  --brand-border: #fcb899;
+  --brand-secondary: #0c4aad;
+  --brand-secondary-ink: #0c4aad;
+  --brand-accent: #17a1bd;
 
-  --background: oklch(0.985 0.002 75);
-  --foreground: oklch(0.2 0.01 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.01 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.01 60);
-  --primary: oklch(0.23 0.012 60);
-  --primary-foreground: oklch(0.985 0.002 75);
-  --secondary: oklch(0.96 0.003 75);
-  --secondary-foreground: oklch(0.25 0.01 60);
-  --muted: oklch(0.965 0.003 75);
-  --muted-foreground: oklch(0.52 0.01 60);
-  --accent: oklch(0.955 0.004 75);
-  --accent-foreground: oklch(0.23 0.012 60);
-  --destructive: oklch(0.577 0.215 27);
-  --border: oklch(0.918 0.004 75);
-  --input: oklch(0.9 0.004 75);
-  --ring: color-mix(in oklch, var(--brand) 60%, transparent);
+  --omni-orange: #f54e00;
+  --omni-red: #e30000;
+  --omni-yellow: #ffc02b;
+  --omni-teal: #17a1bd;
+  --omni-blue: #0c4aad;
+  --omni-charcoal: #2e3331;
+  --omni-grey: #5b625f;
+  --omni-light: #f1f2f2;
+
+  --background: #f7f8f8;
+  --foreground: #2e3331;
+  --card: #ffffff;
+  --card-foreground: #2e3331;
+  --popover: #ffffff;
+  --popover-foreground: #2e3331;
+  --primary: #2e3331;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f2f2;
+  --secondary-foreground: #2e3331;
+  --muted: #f1f2f2;
+  --muted-foreground: #5b625f;
+  --accent: #eceeee;
+  --accent-foreground: #2e3331;
+  --destructive: #c80000;
+  --border: #e1e4e3;
+  --input: #d6dad9;
+  --ring: #f9a780;
   --radius: 0.5rem;
 
-  --sidebar: oklch(0.975 0.003 75);
-  --sidebar-foreground: oklch(0.3 0.01 60);
-  --sidebar-border: oklch(0.92 0.004 75);
+  --sidebar: #f1f2f2;
+  --sidebar-foreground: #3c4240;
+  --sidebar-border: #e1e4e3;
 
-  --status-on: oklch(0.62 0.15 155);
-  --status-on-bg: oklch(0.96 0.04 155);
-  --status-risk: oklch(0.72 0.15 70);
-  --status-risk-bg: oklch(0.97 0.05 85);
-  --status-off: oklch(0.6 0.2 25);
-  --status-off-bg: oklch(0.96 0.03 25);
-  --status-done: oklch(0.55 0.13 250);
-  --status-done-bg: oklch(0.96 0.03 250);
-  --status-none: oklch(0.7 0.01 60);
-  --status-none-bg: oklch(0.96 0.003 75);
+  /* Semantic status — fixed, independent of company branding. Each pairs a
+     colour with an icon and label so status never relies on colour alone. */
+  --status-on: #1e9e6a;
+  --status-on-ink: #13774f;
+  --status-on-bg: #e6f5ee;
+  --status-risk: #ffc02b;
+  --status-risk-ink: #8a5a00;
+  --status-risk-bg: #fff6df;
+  --status-off: #e30000;
+  --status-off-ink: #c00000;
+  --status-off-bg: #fde8e8;
+  --status-done: #0c4aad;
+  --status-done-ink: #0c4aad;
+  --status-done-bg: #e7eef9;
+  --status-none: #9aa19e;
+  --status-none-ink: #5b625f;
+  --status-none-bg: #f1f2f2;
 
-  --chart-1: oklch(0.35 0.02 60);
-  --chart-2: var(--brand);
-  --chart-grid: oklch(0.93 0.004 75);
+  --chart-1: #c43e00;
+  --chart-2: #0c4aad;
+  --chart-3: #127f95;
+  --chart-muted: #5b625f;
+  --chart-grid: #e8ebea;
 }
 
 .dark {
@@ -86,6 +115,21 @@
 
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-border: var(--brand-border);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-secondary-ink: var(--brand-secondary-ink);
+  --color-brand-accent: var(--brand-accent);
+  --color-omni-orange: var(--omni-orange);
+  --color-omni-red: var(--omni-red);
+  --color-omni-yellow: var(--omni-yellow);
+  --color-omni-teal: var(--omni-teal);
+  --color-omni-blue: var(--omni-blue);
+  --color-omni-charcoal: var(--omni-charcoal);
+  --color-omni-grey: var(--omni-grey);
+  --color-omni-light: var(--omni-light);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -110,6 +154,11 @@
 
   --color-on: var(--status-on);
   --color-on-bg: var(--status-on-bg);
+  --color-on-ink: var(--status-on-ink);
+  --color-risk-ink: var(--status-risk-ink);
+  --color-off-ink: var(--status-off-ink);
+  --color-done-ink: var(--status-done-ink);
+  --color-none-ink: var(--status-none-ink);
   --color-risk: var(--status-risk);
   --color-risk-bg: var(--status-risk-bg);
   --color-off: var(--status-off);
@@ -142,7 +191,7 @@
     font-variant-numeric: tabular-nums;
   }
   ::selection {
-    background: color-mix(in oklch, var(--brand) 25%, transparent);
+    background: color-mix(in srgb, var(--brand) 22%, transparent);
   }
 }
 

@@ -64,7 +64,7 @@ test.describe.serial("weekly operating rhythm", () => {
     await expect(page.getByText("Issue raised")).toBeVisible();
 
     // Discuss it under Material issues
-    await page.getByRole("button", { name: /Material issues/ }).click();
+    await page.getByRole("button", { name: /^Issues \d/ }).click();
     const issue = page.getByTestId(`issue-Enterprise pipeline coverage collapsed to 1.9x ${stamp}`);
     await expect(issue).toContainText("Raised today");
     await issue.getByRole("button", { name: /Enterprise pipeline coverage collapsed/ }).click();
@@ -104,7 +104,7 @@ test.describe.serial("weekly operating rhythm", () => {
 
     await page.goto("/c/clinara/meetings");
     await page.getByRole("link", { name: "Preview agenda" }).first().click();
-    const previous = page.getByText("3. Previous actions").locator("xpath=ancestor::div[contains(@class,'rounded-lg')][1]");
+    const previous = page.getByText("4. Actions carried over").locator("xpath=ancestor::div[contains(@class,'rounded-lg')][1]");
     await expect(previous).toContainText(ACTION);
   });
 

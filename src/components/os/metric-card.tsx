@@ -10,8 +10,8 @@ import { StatusDot } from "./status";
 import { Sparkline } from "./sparkline";
 
 export function TrendIcon({ trend, className }: { trend: MetricView["trend"]; className?: string }) {
-  if (trend === "improving") return <ArrowUpRight className={cn("size-3.5 text-on", className)} aria-label="Improving" />;
-  if (trend === "declining") return <ArrowDownRight className={cn("size-3.5 text-off", className)} aria-label="Declining" />;
+  if (trend === "improving") return <ArrowUpRight className={cn("size-3.5 text-on-ink", className)} aria-label="Improving" />;
+  if (trend === "declining") return <ArrowDownRight className={cn("size-3.5 text-off-ink", className)} aria-label="Declining" />;
   return <ArrowRight className={cn("size-3.5 text-muted-foreground", className)} aria-label="Flat" />;
 }
 

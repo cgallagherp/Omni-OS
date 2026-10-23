@@ -66,10 +66,12 @@ export function ScheduleMeetingDialog({ companyId, crew, trigger }: { companyId:
           <div className="grid grid-cols-2 gap-3">
             <Field label="Type" error={e.type}>
               <NativeSelect name="type" defaultValue="weekly">
-                <option value="weekly">Weekly leadership meeting</option>
+                <option value="weekly">Weekly ELT meeting</option>
+                <option value="board_monthly">Monthly Board</option>
+                <option value="board_quarterly">Quarterly Board</option>
+                <option value="quarterly">Quarterly offsite</option>
+                <option value="annual">Annual strategy reset</option>
                 <option value="monthly">Monthly operating review</option>
-                <option value="quarterly">Quarterly strategic reset</option>
-                <option value="annual">Annual strategic planning</option>
               </NativeSelect>
             </Field>
             <Field label="When" error={e.scheduled_at}>
@@ -94,7 +96,7 @@ export function ScheduleMeetingDialog({ companyId, crew, trigger }: { companyId:
             <div className="grid grid-cols-2 gap-1.5">
               {crew.filter((c) => !c.is_open_seat).map((c) => (
                 <label key={c.id} className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="attendee" value={c.id} defaultChecked className="size-4 accent-[var(--brand)]" /> {c.full_name}
+                  <input type="checkbox" name="attendee" value={c.id} defaultChecked className="size-4 accent-brand" /> {c.full_name}
                 </label>
               ))}
             </div>

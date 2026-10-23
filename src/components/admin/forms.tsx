@@ -40,7 +40,7 @@ function TempPasswordDialog({ password, onClose }: { password: string | null; on
   );
 }
 
-export function CompanySettingsForm({ companyId, defaults }: { companyId: string; defaults: { name: string; sector: string | null; description: string | null; headquarters: string | null; brand_color: string; currency: string; fiscal_year_start_month: number; max_winning_moves: number } }) {
+export function CompanySettingsForm({ companyId, defaults }: { companyId: string; defaults: { name: string; sector: string | null; description: string | null; headquarters: string | null; currency: string; fiscal_year_start_month: number; max_three_year_outcomes: number; priority_target: number; max_priorities: number } }) {
   return (
     <InlineForm action={(fd) => updateCompanySettings(companyId, fd)} resetOnSuccess={false}>
       {({ pending, errors }) => (
@@ -56,9 +56,6 @@ export function CompanySettingsForm({ companyId, defaults }: { companyId: string
           </Field>
           <Field label="Headquarters" error={errors.headquarters}>
             <Input name="headquarters" defaultValue={defaults.headquarters ?? ""} />
-          </Field>
-          <Field label="Brand colour" error={errors.brand_color}>
-            <Input name="brand_color" defaultValue={defaults.brand_color} pattern="#[0-9a-fA-F]{6}" />
           </Field>
           <Field label="Reporting currency" error={errors.currency}>
             <NativeSelect name="currency" defaultValue={defaults.currency}>
@@ -76,8 +73,14 @@ export function CompanySettingsForm({ companyId, defaults }: { companyId: string
               ))}
             </NativeSelect>
           </Field>
-          <Field label="Maximum Winning Moves" hint="Omni default is 5 — focus on less." error={errors.max_winning_moves}>
-            <Input name="max_winning_moves" type="number" min={1} max={10} defaultValue={defaults.max_winning_moves} />
+          <Field label="Maximum Three-Year Outcomes" hint="Omni default is 5 — focus on less." error={errors.max_three_year_outcomes}>
+            <Input name="max_three_year_outcomes" type="number" min={1} max={10} defaultValue={defaults.max_three_year_outcomes} />
+          </Field>
+          <Field label="Target 90-Day Priorities per quarter" hint="Omni guidance is about three. A warning shows above this number." error={errors.priority_target}>
+            <Input name="priority_target" type="number" min={1} max={10} defaultValue={defaults.priority_target} />
+          </Field>
+          <Field label="Hard limit on 90-Day Priorities" hint="Enforced in the database; stopped priorities don't count." error={errors.max_priorities}>
+            <Input name="max_priorities" type="number" min={1} max={10} defaultValue={defaults.max_priorities} />
           </Field>
           <div className="md:col-span-2">
             <SubmitButton pending={pending}>Save settings</SubmitButton>
@@ -120,13 +123,14 @@ export function InviteMemberDialog({ companyId, trigger }: { companyId: string; 
               <Field label="Role" error={e.role}>
                 <NativeSelect name="role" defaultValue="executive">
                   <option value="executive">Executive</option>
+                  <option value="ceo">CEO</option>
                   <option value="company_admin">Company administrator</option>
-                  <option value="observer">Read-only observer</option>
+                  <option value="observer">Chair / Board observer (read-only)</option>
                 </NativeSelect>
               </Field>
             </div>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="add_to_crew" defaultChecked className="size-4 accent-[var(--brand)]" /> Add to the accountability chart
+              <input type="checkbox" name="add_to_crew" defaultChecked className="size-4 accent-brand" /> Add to the accountability chart
             </label>
           </>
         )}
@@ -143,9 +147,10 @@ export function MemberControls({ companyId, userId, role, isSelf }: { companyId:
   return (
     <div className="flex items-center gap-2">
       <NativeSelect value={role} disabled={q.pending} onChange={(e) => q.run(() => setMemberRole(companyId, userId, e.target.value as "executive"))} className="h-7 w-40 text-xs">
+        <option value="ceo">CEO</option>
         <option value="company_admin">Company admin</option>
         <option value="executive">Executive</option>
-        <option value="observer">Observer</option>
+        <option value="observer">Chair / observer</option>
       </NativeSelect>
       <Button
         variant="ghost"
@@ -169,7 +174,7 @@ export function OmniAssignmentToggle({ companyId, userId, assigned }: { companyI
       checked={assigned}
       disabled={q.pending}
       onChange={(e) => q.run(() => setOmniAssignment(companyId, userId, e.target.checked))}
-      className="size-4 accent-[var(--brand)]"
+      className="size-4 accent-brand"
       aria-label="Assigned"
     />
   );
@@ -216,8 +221,8 @@ export function NewCompanyDialog({ trigger }: { trigger: ReactNode }) {
               <Field label="Investment date" error={e.acquired_on}>
                 <Input name="acquired_on" type="date" />
               </Field>
-              <Field label="Brand colour" error={e.brand_color}>
-                <Input name="brand_color" defaultValue="#3F3F46" pattern="#[0-9a-fA-F]{6}" />
+              <Field label="Company colour (optional)" error={e.brand_color} hint="Leave blank to keep the Omni identity; logo and colours can be set later in Appearance & Branding.">
+                <Input name="brand_color" placeholder="#0C4AAD" pattern="#[0-9a-fA-F]{6}" />
               </Field>
               <Field label="Currency" error={e.currency}>
                 <NativeSelect name="currency" defaultValue="GBP">

@@ -15,7 +15,7 @@ const BAR: Record<string, string> = {
 };
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** Annual roadmap: Winning Moves as swimlanes; goals and priorities as bars; milestones as diamonds. */
+/** Annual roadmap: Three-Year Outcomes as swimlanes; goals and priorities as bars; milestones as diamonds. */
 export function Roadmap({ slug, year, moves, goals, priorities, milestones, crew }: { slug: string; year: number; moves: WinningMove[]; goals: AnnualGoal[]; priorities: QuarterlyPriority[]; milestones: Milestone[]; crew: CrewMember[] }) {
   const start = Date.UTC(year, 0, 1);
   const end = Date.UTC(year + 1, 0, 1);
@@ -80,7 +80,7 @@ export function Roadmap({ slug, year, moves, goals, priorities, milestones, crew
                   <div className="relative h-5">
                     {ms.map((m) => (
                       <span key={m.id} className="absolute -translate-x-1/2" style={{ left: `${pos(m.target_date, start)}%` }} title={`${m.title} · ${formatDate(m.target_date)}`}>
-                        <Diamond className={cn("size-3.5", m.status === "done" ? "fill-done text-done" : m.status === "at_risk" ? "fill-risk text-risk" : "fill-card text-foreground")} />
+                        <Diamond className={cn("size-3.5", m.status === "done" ? "fill-done text-done-ink" : m.status === "at_risk" ? "fill-risk text-risk-ink" : "fill-card text-foreground")} />
                       </span>
                     ))}
                   </div>
@@ -107,7 +107,7 @@ export function Roadmap({ slug, year, moves, goals, priorities, milestones, crew
         <span className="flex items-center gap-1"><span className="h-2 w-4 rounded-sm bg-done/70" /> Done</span>
         <span className="flex items-center gap-1"><Diamond className="size-3" /> Milestone</span>
         <span className="flex items-center gap-1"><span className="h-3 w-px bg-brand" /> Today</span>
-        <span>Thick bars: annual goals · thin bars: quarterly priorities</span>
+        <span>Thick bars: 12-month objectives · thin bars: 90-day priorities</span>
       </div>
     </div>
   );

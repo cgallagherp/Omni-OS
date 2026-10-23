@@ -8,6 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isDemoMode } from "@/config/brand";
 import { templateByKey } from "@/lib/domain/templates";
 import { quarterDates } from "@/lib/domain/quarters";
+import { governancePlan, onboardingPlan } from "@/lib/domain/operating-system";
 import { revalidateCompany } from "./common";
 import { ActionError, dbError, formObject, run, zOptional, zRequired, type ActionResult } from "./result";
 
@@ -55,7 +56,12 @@ const companySchema = z.object({
     .string()
     .optional()
     .transform((v) => (v ? v : null)),
-  brand_color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  brand_color: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? v.toUpperCase() : null))
+    .pipe(z.string().regex(/^#[0-9A-F]{6}$/, "Use a hex colour like #0C4AAD").nullable()),
   template: z.enum(["saas", "services", "blank"]),
   ceo_name: zRequired("CEO name", 120),
   ceo_title: z.string().trim().default("Chief Executive Officer"),
@@ -84,8 +90,9 @@ export async function createCompany(fd: FormData): Promise<ActionResult<{ slug: 
         currency: d.currency,
         fiscal_year_start_month: d.fiscal_year_start_month,
         acquired_on: d.acquired_on,
-        brand_color: d.brand_color,
+        brand_color: d.brand_color ?? "#2E3331",
         is_demo: false,
+        settings: { max_three_year_outcomes: 5, priority_target: 3, max_priorities: 5 },
       })
       .select()
       .single();
@@ -99,7 +106,7 @@ export async function createCompany(fd: FormData): Promise<ActionResult<{ slug: 
         const p = await provisionUser(d.ceo_email, d.ceo_name, d.ceo_title);
         tempPassword = p.tempPassword;
         userId = p.userId;
-        dbError((await supabase.from("company_memberships").insert({ company_id: cid, user_id: userId, role: "company_admin" })).error);
+        dbError((await supabase.from("company_memberships").insert({ company_id: cid, user_id: userId, role: "ceo" })).error);
       }
       const { data: ceo, error: ce } = await supabase
         .from("crew_members")
@@ -146,12 +153,19 @@ export async function createCompany(fd: FormData): Promise<ActionResult<{ slug: 
       dbError(
         (
           await supabase.from("meetings").insert([
-            { company_id: cid, type: "weekly", title: "Weekly Leadership Meeting", scheduled_at: nextMonday.toISOString(), facilitator_id: ceo!.id },
-            { company_id: cid, type: "monthly", title: "Monthly Operating Review", scheduled_at: nextMonth.toISOString(), facilitator_id: ceo!.id },
-            { company_id: cid, type: "quarterly", title: "Quarterly Strategic Reset", scheduled_at: nextQuarter.toISOString(), facilitator_id: ceo!.id },
+            { company_id: cid, type: "weekly", title: "Weekly ELT meeting", scheduled_at: nextMonday.toISOString(), facilitator_id: ceo!.id },
+            { company_id: cid, type: "board_monthly", title: "Monthly Board", scheduled_at: nextMonth.toISOString(), facilitator_id: ceo!.id },
+            { company_id: cid, type: "quarterly", title: "Quarterly offsite", scheduled_at: nextQuarter.toISOString(), facilitator_id: ceo!.id },
           ])
         ).error,
       );
+
+      // First 100 days and investor governance, from the Omni templates
+      const completion = d.acquired_on ? new Date(`${d.acquired_on}T00:00:00Z`) : now;
+      dbError((await supabase.from("onboarding_milestones").insert(onboardingPlan(completion).map((m) => ({ ...m, company_id: cid, owner_id: m.lead.includes("CEO") ? ceo!.id : null })))).error);
+      dbError((await supabase.from("governance_items").insert(governancePlan(completion, d.fiscal_year_start_month, now).map((g) => ({ ...g, company_id: cid })))).error);
+      // Optional company colour; without it the workspace keeps the Omni identity
+      if (d.brand_color) dbError((await supabase.from("company_branding").insert({ company_id: cid, primary_color: d.brand_color })).error);
       revalidatePath("/", "layout");
       return { ok: true, message: `${d.name} created`, data: { slug: d.slug, tempPassword } };
     } catch (e) {
@@ -175,7 +189,7 @@ const inviteSchema = z.object({
   email: z.string().trim().toLowerCase().email("Invalid email"),
   full_name: zRequired("Name", 120),
   title: zOptional(160),
-  role: z.enum(["company_admin", "executive", "observer"]),
+  role: z.enum(["ceo", "company_admin", "executive", "observer"]),
   add_to_crew: z
     .string()
     .optional()
@@ -200,9 +214,10 @@ export async function inviteMember(companyId: string, fd: FormData): Promise<Act
   });
 }
 
-export async function setMemberRole(companyId: string, userId: string, role: "company_admin" | "executive" | "observer"): Promise<ActionResult> {
+export async function setMemberRole(companyId: string, userId: string, role: "ceo" | "company_admin" | "executive" | "observer"): Promise<ActionResult> {
   return run(async () => {
     const ctx = await requireCompanyPermission(companyId, "admin");
+    role = z.enum(["ceo", "company_admin", "executive", "observer"]).parse(role);
     if (userId === ctx.viewer.id) throw new ActionError("You cannot change your own role.");
     const { data, error } = await ctx.supabase.from("company_memberships").update({ role }).eq("company_id", companyId).eq("user_id", userId).neq("role", "omni").select("user_id");
     dbError(error);

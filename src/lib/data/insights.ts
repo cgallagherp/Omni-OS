@@ -137,8 +137,8 @@ export async function buildBrief(supabase: Supabase, s: CompanySnapshot, task: T
       };
     });
     sections.push({
-      title: "Quarterly priorities at risk",
-      facts: facts.length ? facts : [{ text: "All quarterly priorities are on track or done.", sources: [] }],
+      title: "90-day priorities at risk",
+      facts: facts.length ? facts : [{ text: "All 90-day priorities are on track or done.", sources: [] }],
       recommendations: offPriorities.filter((p) => !s.openIssues.some((i) => i.quarterly_priority_id === p.id)).map((p) => `"${p.title}" is ${STATUS_META[p.status].label.toLowerCase()} with no open issue — raise one so the blocker is discussed.`),
     });
   }
@@ -202,13 +202,13 @@ export async function buildBrief(supabase: Supabase, s: CompanySnapshot, task: T
     }
     const { data: conditions } = await supabase.from("success_conditions").select("*").eq("company_id", s.company.id);
     for (const c of conditions ?? []) facts.push({ text: `Condition for success "${c.title}" is ${STATUS_META[c.status].label.toLowerCase()}.`, sources: ns ? [refs.add("north_star", ns.id, "North Star", "/north-star")] : [] });
-    for (const w of s.winningMoves) facts.push({ text: `Winning Move "${w.title}" is ${STATUS_META[w.status].label.toLowerCase()} at ${w.progress}% (${who(w.owner_id)}).`, sources: [refs.add("move", w.id, w.title, `/flight-plan/winning_move/${w.id}`)] });
+    for (const w of s.winningMoves) facts.push({ text: `Three-Year Outcome "${w.title}" is ${STATUS_META[w.status].label.toLowerCase()} at ${w.progress}% (${who(w.owner_id)}).`, sources: [refs.add("move", w.id, w.title, `/flight-plan/winning_move/${w.id}`)] });
     const behind = s.winningMoves.filter((w) => w.status === "off_track" || w.status === "at_risk");
     sections.push({
       title: "Current position against the agreed strategic plan",
       facts,
       recommendations: [
-        ...behind.map((w) => `Review whether "${w.title}" needs more resource, a different approach, or a revised milestone at the next quarterly reset.`),
+        ...behind.map((w) => `Review whether "${w.title}" needs more resource, a different approach, or a revised milestone at the next quarterly offsite.`),
         "Where the EBITDA journey lags the time elapsed, quantify the gap in the exit equity story and agree the recovery levers with Omni.",
       ],
     });

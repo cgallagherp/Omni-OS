@@ -1,8 +1,11 @@
 import "server-only";
 import { executionHealth } from "@/lib/domain/health";
+import { attentionThisWeek } from "@/lib/domain/attention";
 import type { Supabase } from "@/lib/supabase/server";
 import { buildMetricView, isException, summariseStatuses, type MetricView } from "@/lib/domain/metric-view";
 import { fiscalYearOf, fiscalYearStart, toISODate, ytd, type YtdSummary } from "@/lib/domain/metrics";
+import { buildWeeklyScorecard, weekStartOf, type ScorecardRow } from "@/lib/domain/weekly-scorecard";
+import { reportingCompliance, reportingSchedule, type ScheduledReport } from "@/lib/domain/reporting";
 import type {
   Action,
   AnnualGoal,
@@ -14,6 +17,11 @@ import type {
   Metric,
   MetricLink,
   NorthStar,
+  OnboardingMilestone,
+  OrgAction,
+  PriorityMilestone,
+  GovernanceItem,
+  ListeningRound,
   Quarter,
   QuarterlyPriority,
   WinningMove,
@@ -65,6 +73,23 @@ export interface CompanySnapshot {
   nextMeeting: Meeting | null;
   nextQuarterly: Meeting | null;
   meetingsLast4Weeks: number;
+  /** Mission Control: open agreed organisational actions (Crew). */
+  orgActions: OrgAction[];
+  /** Milestones of the active quarter's priorities. */
+  priorityMilestones: PriorityMilestone[];
+  /** Live Monday scorecard for the current week (derived; never commentary). */
+  scorecard: ScorecardRow[];
+  weekStart: string;
+  /** Approved Monday scorecards, newest first. Visible to leadership and Omni only (RLS). */
+  sentScorecards: Array<{ id: string; week_start: string; approved_at: string | null; sent_at: string | null; rows: ScorecardRow[] }>;
+  reporting: ScheduledReport[];
+  reportingCompliance: ReturnType<typeof reportingCompliance>;
+  onboarding: OnboardingMilestone[];
+  governance: GovernanceItem[];
+  listening: Pick<ListeningRound, "id" | "kind" | "held_on">[];
+  lastOffsite: Meeting | null;
+  nextOffsite: Meeting | null;
+  nextBoard: Meeting | null;
 }
 
 const byOrder = <T extends { sort_order: number }>(a: T, b: T) => a.sort_order - b.sort_order;
@@ -74,7 +99,7 @@ export async function loadCompanySnapshots(supabase: Supabase, companyIds: strin
   const sinceValues = toISODate(new Date(Date.UTC(now.getUTCFullYear() - 1, now.getUTCMonth() - 2, 1)));
   const today = toISODate(now);
 
-  const [companies, northStars, crew, moves, goals, quarters, priorities, metrics, links, issues, actions, decisions, meetings, values] =
+  const [companies, northStars, crew, moves, goals, quarters, priorities, metrics, links, issues, actions, decisions, meetings, values, orgActions, pMilestones, scorecards, reports, onboarding, governance, listening] =
     await Promise.all([
       supabase.from("companies").select("*").in("id", companyIds).then(must),
       supabase.from("north_stars").select("*").in("company_id", companyIds).then(must),
@@ -99,6 +124,13 @@ export async function loadCompanySnapshots(supabase: Supabase, companyIds: strin
           .order("id")
           .range(from, to),
       ),
+      supabase.from("org_actions").select("*").in("company_id", companyIds).neq("status", "closed").order("target_date").then(must),
+      supabase.from("priority_milestones").select("*").in("company_id", companyIds).order("sort_order").then(must),
+      supabase.from("weekly_scorecards").select("id, company_id, week_start, approved_at, sent_at, rows").in("company_id", companyIds).order("week_start", { ascending: false }).limit(8 * companyIds.length).then(must),
+      supabase.from("board_reports").select("kind, company_id, period_start, status, published_at").in("company_id", companyIds).then(must),
+      supabase.from("onboarding_milestones").select("*").in("company_id", companyIds).order("sort_order").then(must),
+      supabase.from("governance_items").select("*").in("company_id", companyIds).order("sort_order").then(must),
+      supabase.from("listening_rounds").select("id, company_id, kind, held_on").in("company_id", companyIds).order("held_on", { ascending: false }).then(must),
     ]);
 
   const valuesByMetric = new Map<string, typeof values>();
@@ -142,6 +174,24 @@ export async function loadCompanySnapshots(supabase: Supabase, companyIds: strin
       .filter((i) => i.company_id === cid)
       .sort((a, b) => rankPriority(a.priority) - rankPriority(b.priority) || b.created_at.localeCompare(a.created_at));
     const openActions = actions.filter((a) => a.company_id === cid);
+    const issueMetric = new Map(openIssues.map((i) => [i.id, i.metric_id]));
+    const crewName = new Map(companyCrew.map((c) => [c.id, c.full_name]));
+    const scorecard = buildWeeklyScorecard(
+      metricViews.map((v) => ({ ...v, metric: { ...v.metric, tolerance_pct: Number(v.metric.tolerance_pct) } })),
+      openActions.map((a) => ({ ...a, issue_metric_id: a.issue_id ? (issueMetric.get(a.issue_id) ?? null) : null })),
+      (id) => crewName.get(id) ?? "Unassigned",
+      company.currency,
+    );
+    const boardMeetings = companyMeetings.filter((m) => m.type === "board_monthly" || m.type === "board_quarterly");
+    const reporting = reportingSchedule({
+      today: now,
+      fyStartMonth: company.fiscal_year_start_month,
+      reports: reports.filter((r) => r.company_id === cid).map((r) => ({ ...r, status: r.status === "published" ? ("published" as const) : ("draft" as const) })),
+      boardMeetings,
+      since: company.acquired_on,
+    });
+    const offsites = companyMeetings.filter((m) => m.type === "quarterly" || m.type === "annual");
+    const activePriorityIds = new Set(qp.map((p) => p.id));
 
     return {
       company,
@@ -170,6 +220,21 @@ export async function loadCompanySnapshots(supabase: Supabase, companyIds: strin
       nextMeeting: upcoming[0] ?? null,
       nextQuarterly: upcoming.find((m) => m.type === "quarterly" || m.type === "annual") ?? null,
       meetingsLast4Weeks: completed.filter((m) => m.type === "weekly" && (m.ended_at ?? m.scheduled_at) >= fourWeeksAgo).length,
+      orgActions: orgActions.filter((o) => o.company_id === cid),
+      priorityMilestones: pMilestones.filter((m) => m.company_id === cid && activePriorityIds.has(m.priority_id)),
+      scorecard,
+      weekStart: weekStartOf(now),
+      sentScorecards: scorecards
+        .filter((w) => w.company_id === cid)
+        .map((w) => ({ id: w.id, week_start: w.week_start, approved_at: w.approved_at, sent_at: w.sent_at, rows: (w.rows as unknown as ScorecardRow[]) ?? [] })),
+      reporting,
+      reportingCompliance: reportingCompliance(reporting),
+      onboarding: onboarding.filter((o) => o.company_id === cid),
+      governance: governance.filter((g) => g.company_id === cid),
+      listening: listening.filter((l) => l.company_id === cid),
+      lastOffsite: offsites.filter((m) => m.status === "completed").at(-1) ?? null,
+      nextOffsite: offsites.find((m) => m.status !== "completed" && m.scheduled_at >= `${today}T00:00:00`) ?? null,
+      nextBoard: upcoming.find((m) => m.type === "board_monthly" || m.type === "board_quarterly") ?? null,
     } satisfies CompanySnapshot;
   });
 }
@@ -196,4 +261,47 @@ export function healthOf(s: CompanySnapshot) {
     overdueActions: s.overdueActions.length,
     criticalIssues: s.openIssues.filter((i) => i.priority === "critical").length,
   });
+}
+
+/** Mission Control exceptions for a snapshot (see domain/attention.ts). */
+export function attentionOf(s: CompanySnapshot) {
+  return attentionThisWeek({
+    today: toISODate(s.now),
+    scorecard: s.scorecard,
+    priorities: s.priorities,
+    openIssues: s.openIssues,
+    overdueActions: s.overdueActions,
+    orgActions: s.orgActions,
+    reporting: s.reporting,
+    scorecardApproved: s.sentScorecards.some((w) => w.week_start === s.weekStart && w.approved_at),
+    onboarding: onboardingActive(s) ? s.onboarding : [],
+  });
+}
+
+/** A company is in its first 100 days (plus a short tail) while onboarding milestones remain. */
+export function onboardingActive(s: CompanySnapshot) {
+  if (!s.onboarding.length || !s.company.acquired_on) return false;
+  const days = (s.now.getTime() - Date.parse(`${s.company.acquired_on}T00:00:00Z`)) / 86400000;
+  return days <= 120 && s.onboarding.some((m) => m.status !== "done");
+}
+
+/** Progress from the acquisition baseline towards the North Star targets, on a last-twelve-months basis. */
+export function northStarProgress(s: CompanySnapshot) {
+  const ns = s.northStar;
+  const ltm = (key: string) => {
+    const v = s.metrics.find((m) => m.metric.comparable_key === key);
+    const pts = v?.points.filter((p) => p.value !== null).slice(-12) ?? [];
+    return pts.length === 12 ? pts.reduce((a, p) => a + (p.value ?? 0), 0) : null;
+  };
+  const journey = (base: number | null | undefined, now: number | null, target: number | null | undefined) =>
+    base != null && now != null && target != null && Number(target) !== Number(base) ? Math.max(0, Math.min(1, (now - Number(base)) / (Number(target) - Number(base)))) : null;
+  const revenue = ltm("revenue");
+  const ebitda = ltm("ebitda");
+  return {
+    ltmRevenue: revenue,
+    ltmEbitda: ebitda,
+    revenue: journey(ns?.baseline_revenue, revenue, ns?.target_revenue),
+    ebitda: journey(ns?.baseline_ebitda, ebitda, ns?.target_ebitda),
+    targetYear: ns?.target_year ?? null,
+  };
 }

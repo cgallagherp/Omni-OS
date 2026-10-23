@@ -9,12 +9,12 @@ const rubik = Rubik({ subsets: ["latin"], variable: "--font-rubik", weight: ["30
 
 export const metadata: Metadata = {
   title: { default: brand.product, template: `%s · ${brand.product}` },
-  description: "The Omni Operating System — North Star, Flight Plan, Crew and Rhythm for portfolio companies.",
+  description: "The Omni Operating System — North Star, Flight Plan, Crew and Mission Control for portfolio companies.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en-GB" className={rubik.variable} style={{ ["--brand" as string]: brand.primary }}>
+    <html lang="en-GB" className={rubik.variable}>
       <body className="min-h-dvh font-sans">
         <TooltipProvider>{children}</TooltipProvider>
         <Toaster position="bottom-right" toastOptions={{ className: "!font-sans !text-sm" }} />

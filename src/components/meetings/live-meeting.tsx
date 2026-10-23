@@ -15,6 +15,7 @@ import {
   RefreshCw,
   Square,
   SquareCheck,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +27,8 @@ import { PriorityBadge, StatusBadge } from "@/components/os/status";
 import { Sparkline } from "@/components/os/sparkline";
 import { FormDialog, InlineForm, SubmitButton, useQuickAction } from "@/components/os/forms";
 import { ActionDialog, DecisionDialog, IssueDialog, ResolveIssueDialog, type CrewOption } from "@/components/os/entity-forms";
-import { AGENDA_SECTIONS, type AgendaSection } from "@/lib/domain/agenda";
-import { RAG_OPTIONS, MEETING_TYPE_LABEL } from "@/lib/domain/status";
+import { AGENDA_GROUPS, AGENDA_SECTIONS, type AgendaSection } from "@/lib/domain/agenda";
+import { PRIORITY_STATUS_OPTIONS, RAG_OPTIONS, MEETING_TYPE_LABEL } from "@/lib/domain/status";
 import { formatDate, relativeDays } from "@/lib/domain/format";
 import type { MeetingBundle } from "@/lib/data/meetings";
 import type { FormOptions } from "@/lib/data/options";
@@ -40,10 +41,12 @@ import { cn } from "@/lib/utils";
 type Crew = CrewOption & { avatar_color: string | null };
 
 const TIMEBOX: Record<string, Partial<Record<AgendaSection, number>>> = {
-  weekly: { kpi_exceptions: 5, priorities: 5, previous_actions: 5, issues: 60, discussion: 10, new_actions: 5 },
-  monthly: { kpi_exceptions: 30, priorities: 20, previous_actions: 10, issues: 60, discussion: 20, new_actions: 10 },
-  quarterly: { kpi_exceptions: 30, priorities: 45, previous_actions: 15, issues: 90, discussion: 60, new_actions: 15 },
-  annual: { kpi_exceptions: 30, priorities: 45, previous_actions: 15, issues: 90, discussion: 90, new_actions: 15 },
+  weekly: { kpi_exceptions: 5, priorities: 10, issues: 60, previous_actions: 5, discussion: 5, new_actions: 5 },
+  monthly: { kpi_exceptions: 30, priorities: 20, issues: 60, previous_actions: 10, discussion: 20, new_actions: 10 },
+  board_monthly: { kpi_exceptions: 15, priorities: 15, issues: 20, previous_actions: 5, discussion: 15, new_actions: 5 },
+  board_quarterly: { kpi_exceptions: 30, priorities: 30, issues: 45, previous_actions: 10, discussion: 45, new_actions: 10 },
+  quarterly: { kpi_exceptions: 30, priorities: 45, issues: 90, previous_actions: 15, discussion: 60, new_actions: 15 },
+  annual: { kpi_exceptions: 30, priorities: 45, issues: 90, previous_actions: 15, discussion: 90, new_actions: 15 },
 };
 
 function useElapsed(since: string | null) {
@@ -143,32 +146,38 @@ export function LiveMeeting({ companyId, slug, bundle, crew, options, canWrite }
         {/* Agenda nav */}
         <nav className="border-b px-3 py-3 lg:sticky lg:top-[53px] lg:h-[calc(100dvh-53px)] lg:border-r lg:border-b-0">
           <p className="px-2 pb-2 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Agenda</p>
-          <ol className="flex gap-1 overflow-x-auto lg:block lg:space-y-0.5">
-            {AGENDA_SECTIONS.map((s, i) => {
-              const c = count(s.key);
-              const r = reviewed(s.key);
-              const done = c > 0 && r === sectionItems(s.key).length && sectionItems(s.key).length > 0;
-              return (
-                <li key={s.key} className="shrink-0">
-                  <button
-                    onClick={() => setSection(s.key)}
-                    className={cn(
-                      "flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-[13px] transition-colors",
-                      section === s.key ? "bg-card font-medium shadow-[0_0_0_1px_var(--border)]" : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                    )}
-                  >
-                    <span className={cn("flex size-5 shrink-0 items-center justify-center rounded-full border text-[10px] tabular", done && "border-on bg-on text-white", section === s.key && !done && "border-foreground")}>
-                      {done ? <Check className="size-3" /> : i + 1}
-                    </span>
-                    <span className="flex-1 whitespace-nowrap">{s.label}</span>
-                    <span className="text-[11px] tabular text-muted-foreground">
-                      {["discussion", "new_actions"].includes(s.key) ? c : `${r}/${c}`}
-                    </span>
-                  </button>
-                  {timebox[s.key] && section === s.key && <p className="hidden pl-[38px] text-[11px] text-muted-foreground lg:block">{timebox[s.key]} min · {s.description}</p>}
-                </li>
-              );
-            })}
+          <ol className="flex gap-1 overflow-x-auto lg:block lg:space-y-2">
+            {AGENDA_GROUPS.map((g) => (
+              <li key={g.key} className="flex shrink-0 gap-1 lg:block lg:space-y-0.5">
+                <p className="hidden px-2 pt-1 text-[11.5px] font-semibold text-foreground/80 lg:block">{g.label}</p>
+                <ol className="flex gap-1 lg:block lg:space-y-0.5">
+                  {g.sections.map((key) => {
+                    const s = AGENDA_SECTIONS.find((x) => x.key === key)!;
+                    const c = count(s.key);
+                    const r = reviewed(s.key);
+                    const done = c > 0 && r === sectionItems(s.key).length && sectionItems(s.key).length > 0;
+                    return (
+                      <li key={s.key} className="shrink-0">
+                        <button
+                          onClick={() => setSection(s.key)}
+                          className={cn(
+                            "flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px] transition-colors",
+                            section === s.key ? "bg-card font-medium shadow-[0_0_0_1px_var(--border)]" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                          )}
+                        >
+                          <span className={cn("flex size-4 shrink-0 items-center justify-center rounded-full border text-[10px]", done && "border-on bg-on text-white", section === s.key && !done && "border-brand bg-brand")}>
+                            {done && <Check className="size-2.5" />}
+                          </span>
+                          <span className="flex-1 whitespace-nowrap">{s.label}</span>
+                          <span className="text-[11px] tabular text-muted-foreground">{["discussion", "new_actions"].includes(s.key) ? c : `${r}/${c}`}</span>
+                        </button>
+                        {timebox[s.key] && section === s.key && <p className="hidden pl-[34px] text-[11px] text-muted-foreground lg:block">{timebox[s.key]} min · {s.description}</p>}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </li>
+            ))}
           </ol>
           <p className="mt-4 hidden px-2 text-[11px] text-muted-foreground lg:block">
             Use <kbd className="rounded border px-1">←</kbd> <kbd className="rounded border px-1">→</kbd> to move between sections.
@@ -179,9 +188,7 @@ export function LiveMeeting({ companyId, slug, bundle, crew, options, canWrite }
         <section className="min-w-0 px-4 py-5 sm:px-6 lg:px-8">
           <div className="mb-4 flex items-end justify-between gap-3">
             <div>
-              <p className="text-xs text-muted-foreground">
-                {idx + 1} of {AGENDA_SECTIONS.length}
-              </p>
+              <p className="text-xs text-muted-foreground">{AGENDA_GROUPS.find((g) => g.sections.includes(section))?.label}</p>
               <h2 className="text-lg font-semibold tracking-tight">{AGENDA_SECTIONS[idx].label}</h2>
               <p className="text-sm text-muted-foreground">{AGENDA_SECTIONS[idx].description}</p>
             </div>
@@ -278,7 +285,7 @@ function ReviewToggle({ companyId, itemId, reviewed, disabled }: { companyId: st
     <button
       onClick={() => q.run(() => setAgendaItemReviewed(companyId, itemId, !reviewed))}
       disabled={disabled || q.pending}
-      className={cn("flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors", reviewed ? "text-on" : "text-muted-foreground hover:bg-accent hover:text-foreground")}
+      className={cn("flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors", reviewed ? "text-on-ink" : "text-muted-foreground hover:bg-accent hover:text-foreground")}
       aria-pressed={reviewed}
     >
       {reviewed ? <CheckCircle2 className="size-4" /> : <Circle className="size-4" />}
@@ -321,10 +328,10 @@ function KpiSection({ companyId, meetingId, bundle, crewById, crew, options, can
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <Owner person={crewById.get(m.owner_id)} />
-                {changed && <span className="text-done">Updated during this meeting</span>}
+                {changed && <span className="text-done-ink">Updated during this meeting</span>}
                 {issue && (
                   <span className="inline-flex items-center gap-1 text-foreground">
-                    <AlertTriangle className="size-3 text-risk" /> Issue open: {issue.title}
+                    <AlertTriangle className="size-3 text-risk-ink" /> Issue open: {issue.title}
                   </span>
                 )}
               </div>
@@ -334,6 +341,17 @@ function KpiSection({ companyId, meetingId, bundle, crewById, crew, options, can
             </div>
             <div className="flex flex-wrap items-center gap-1 md:flex-col md:items-end">
               {canWrite && <UpdateValuePopover companyId={companyId} metric={m} />}
+              {canWrite && m.status === "off_track" && (
+                <ActionDialog
+                  title={`Agree corrective action — ${m.name}`}
+                  submitLabel="Agree action"
+                  trigger={<Button size="sm" variant="brand"><Wrench /> Corrective action</Button>}
+                  action={(fd) => saveAction(companyId, null, fd)}
+                  crew={crew}
+                  priorities={options.priorities}
+                  defaults={{ metric_id: m.id, meeting_id: meetingId, owner_id: m.owner_id, issue_id: issue?.id ?? null }}
+                />
+              )}
               {canWrite && !issue && (
                 <IssueDialog
                   trigger={<Button size="sm" variant="outline"><AlertTriangle /> Raise issue</Button>}
@@ -385,7 +403,7 @@ function UpdateValuePopover({ companyId, metric }: { companyId: string; metric: 
 function PrioritiesSection({ companyId, meetingId, bundle, crewById, crew, options, canWrite }: SectionProps) {
   const items = bundle.agenda.filter((i) => i.section === "priorities");
   const q = useQuickAction();
-  if (!items.length) return <Empty text="No quarterly priorities in the active quarter." />;
+  if (!items.length) return <Empty text="No 90-day priorities in the active quarter." />;
   return (
     <div className="divide-y overflow-hidden rounded-lg border bg-card">
       {items.map((item) => {
@@ -393,13 +411,14 @@ function PrioritiesSection({ companyId, meetingId, bundle, crewById, crew, optio
         if (!p) return null;
         const before = (item.snapshot as Record<string, unknown>).status as string;
         return (
-          <div key={item.id} className={cn("flex flex-col gap-2 p-3.5 sm:flex-row sm:items-center", item.reviewed && "bg-muted/30")}>
+          <div key={item.id} className={cn("p-3.5", item.reviewed && "bg-muted/30")}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
               <p className="text-[14px] font-medium">{p.title}</p>
               <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
                 <Owner person={crewById.get(p.owner_id)} />
                 <span>Due {formatDate(p.due_date, { year: false })}</span>
-                {before !== p.status && <span className="text-done">was {RAG_OPTIONS.find((o) => o.value === before)?.label.toLowerCase()}</span>}
+                {before !== p.status && <span className="text-done-ink">was {RAG_OPTIONS.find((o) => o.value === before)?.label.toLowerCase()}</span>}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -408,9 +427,9 @@ function PrioritiesSection({ companyId, meetingId, bundle, crewById, crew, optio
                 value={p.status}
                 disabled={!canWrite || q.pending}
                 onChange={(e) => q.run(() => updatePlanItem(companyId, "quarterly_priority", p.id, { status: e.target.value }), "Status updated")}
-                className={cn("h-7 w-[118px] text-xs font-medium", p.status === "off_track" && "text-off", p.status === "at_risk" && "text-risk", p.status === "on_track" && "text-on")}
+                className={cn("h-7 w-[118px] text-xs font-medium", p.status === "off_track" && "text-off-ink", p.status === "at_risk" && "text-risk-ink", p.status === "on_track" && "text-on-ink")}
               >
-                {RAG_OPTIONS.map((o) => (
+                {PRIORITY_STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
@@ -442,6 +461,19 @@ function PrioritiesSection({ companyId, meetingId, bundle, crewById, crew, optio
               <ReviewToggle companyId={companyId} itemId={item.id} reviewed={item.reviewed} disabled={!canWrite} />
             </div>
           </div>
+            <InlineForm action={(fd) => saveAgendaNote(companyId, item.id, fd)} resetOnSuccess={false} successMessage="Update saved" className="mt-2 flex gap-2">
+              {({ pending }) => (
+                <>
+                  <Input name="notes" defaultValue={item.notes ?? ""} placeholder="One-line update and evidence (e.g. “3 of 5 milestones done; pilot signed 14 Oct”)" aria-label={`Update for ${p.title}`} className="h-8 flex-1 bg-card text-[13px]" disabled={!canWrite} maxLength={400} />
+                  {canWrite && (
+                    <SubmitButton pending={pending} size="sm" variant="outline">
+                      Save
+                    </SubmitButton>
+                  )}
+                </>
+              )}
+            </InlineForm>
+          </div>
         );
       })}
     </div>
@@ -470,7 +502,7 @@ function ActionsSection({ companyId, bundle, crewById, canWrite }: { companyId: 
               <button
                 disabled={!canWrite || q.pending}
                 onClick={() => q.run(() => setActionStatus(companyId, a.id, done ? "open" : "done"))}
-                className={cn("shrink-0", done ? "text-on" : "text-muted-foreground hover:text-foreground")}
+                className={cn("shrink-0", done ? "text-on-ink" : "text-muted-foreground hover:text-foreground")}
                 aria-label={done ? "Mark not done" : "Mark done"}
               >
                 {done ? <SquareCheck className="size-5" /> : <Square className="size-5" />}
@@ -478,7 +510,7 @@ function ActionsSection({ companyId, bundle, crewById, canWrite }: { companyId: 
               <span className={cn("min-w-0 flex-1 text-[14px]", done && "text-muted-foreground line-through")}>{a.title}</span>
               <CarriedBadge show={item.carried_over} />
               <Owner person={crewById.get(a.owner_id)} className="w-24" />
-              <span className={cn("w-24 text-right text-xs tabular", overdue ? "font-medium text-off" : "text-muted-foreground")}>{overdue ? `Overdue ${relativeDays(a.due_date)}` : formatDate(a.due_date, { year: false })}</span>
+              <span className={cn("w-24 text-right text-xs tabular", overdue ? "font-medium text-off-ink" : "text-muted-foreground")}>{overdue ? `Overdue ${relativeDays(a.due_date)}` : formatDate(a.due_date, { year: false })}</span>
             </div>
           );
         })}
@@ -520,12 +552,12 @@ function IssuesSection({ companyId, meetingId, bundle, crewById, crew, options, 
                   <div className="mb-3 space-y-1.5">
                     {decisions.map((d) => (
                       <p key={d.id} className="flex items-start gap-2 text-sm">
-                        <Gavel className="mt-0.5 size-3.5 shrink-0 text-done" /> <span><span className="font-medium">Decision:</span> {d.title}</span>
+                        <Gavel className="mt-0.5 size-3.5 shrink-0 text-done-ink" /> <span><span className="font-medium">Decision:</span> {d.title}</span>
                       </p>
                     ))}
                     {actions.map((a) => (
                       <p key={a.id} className="flex items-start gap-2 text-sm">
-                        <ListPlus className="mt-0.5 size-3.5 shrink-0 text-brand" />
+                        <ListPlus className="mt-0.5 size-3.5 shrink-0 text-brand-ink" />
                         <span>
                           <span className="font-medium">Action:</span> {a.title} — {crewById.get(a.owner_id)?.full_name}, due {formatDate(a.due_date, { year: false })}
                         </span>
@@ -576,7 +608,7 @@ function DiscussionSection({ companyId, bundle, crewById, canWrite }: { companyI
           {bundle.decisions.map((d) => (
             <div key={d.id} className="px-4 py-3">
               <p className="flex items-start gap-2 font-medium">
-                <Gavel className="mt-1 size-3.5 shrink-0 text-done" /> {d.title}
+                <Gavel className="mt-1 size-3.5 shrink-0 text-done-ink" /> {d.title}
               </p>
               {d.rationale && <p className="mt-1 pl-5.5 text-sm text-muted-foreground">{d.rationale}</p>}
               <p className="mt-1 pl-5.5 text-xs text-muted-foreground">
@@ -612,7 +644,7 @@ function NewActionsSection({ bundle, crewById, companyId, canWrite }: { bundle: 
     <div className="divide-y overflow-hidden rounded-lg border bg-card">
       {bundle.newActions.map((a) => (
         <div key={a.id} className="flex items-center gap-3 px-3.5 py-2.5">
-          <button disabled={!canWrite || q.pending} onClick={() => q.run(() => setActionStatus(companyId, a.id, a.status === "done" ? "open" : "done"))} className={cn(a.status === "done" ? "text-on" : "text-muted-foreground")}>
+          <button disabled={!canWrite || q.pending} onClick={() => q.run(() => setActionStatus(companyId, a.id, a.status === "done" ? "open" : "done"))} className={cn(a.status === "done" ? "text-on-ink" : "text-muted-foreground")}>
             {a.status === "done" ? <SquareCheck className="size-5" /> : <Square className="size-5" />}
           </button>
           <span className="min-w-0 flex-1 text-[14px]">{a.title}</span>
@@ -631,14 +663,14 @@ function CapturedLog({ bundle, crewById }: { bundle: MeetingBundle; crewById: Ma
       <LogGroup title="Decisions" empty="None yet">
         {bundle.decisions.map((d) => (
           <li key={d.id} className="flex gap-2">
-            <Gavel className="mt-0.5 size-3.5 shrink-0 text-done" /> <span>{d.title}</span>
+            <Gavel className="mt-0.5 size-3.5 shrink-0 text-done-ink" /> <span>{d.title}</span>
           </li>
         ))}
       </LogGroup>
       <LogGroup title="Actions" empty="None yet">
         {bundle.newActions.map((a) => (
           <li key={a.id} className="flex gap-2">
-            <ListPlus className="mt-0.5 size-3.5 shrink-0 text-brand" />
+            <ListPlus className="mt-0.5 size-3.5 shrink-0 text-brand-ink" />
             <span>
               {a.title} <span className="text-muted-foreground">— {crewById.get(a.owner_id)?.full_name.split(" ")[0]}, {formatDate(a.due_date, { year: false })}</span>
             </span>
@@ -648,14 +680,14 @@ function CapturedLog({ bundle, crewById }: { bundle: MeetingBundle; crewById: Ma
       <LogGroup title="Issues raised" empty="None">
         {bundle.raisedIssues.map((i) => (
           <li key={i.id} className="flex gap-2">
-            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-risk" /> <span>{i.title}</span>
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-risk-ink" /> <span>{i.title}</span>
           </li>
         ))}
       </LogGroup>
       <LogGroup title="Issues resolved" empty="None">
         {bundle.resolvedIssues.map((i) => (
           <li key={i.id} className="flex gap-2">
-            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-on" /> <span>{i.title}</span>
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-on-ink" /> <span>{i.title}</span>
           </li>
         ))}
       </LogGroup>
@@ -724,7 +756,7 @@ function FinishDialog({ companyId, bundle }: { companyId: string; bundle: Meetin
             </Field>
             {bundle.meeting.type === "weekly" && (
               <label className="flex items-center gap-2 pb-1.5 text-sm">
-                <input type="checkbox" name="schedule_next" defaultChecked className="size-4 accent-[var(--brand)]" /> Schedule next week&apos;s meeting
+                <input type="checkbox" name="schedule_next" defaultChecked className="size-4 accent-brand" /> Schedule next week&apos;s meeting
               </label>
             )}
           </div>

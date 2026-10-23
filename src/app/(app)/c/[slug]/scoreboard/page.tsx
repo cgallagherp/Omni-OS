@@ -106,7 +106,7 @@ export default async function ScoreboardPage({ params, searchParams }: { params:
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground sm:justify-end">
           <span>
-            <b className="text-on">{all.on_track}</b> on track · <b className="text-risk">{all.at_risk}</b> at risk · <b className="text-off">{all.off_track}</b> off track · {all.no_data} no data
+            <b className="text-on-ink">{all.on_track}</b> on track · <b className="text-risk-ink">{all.at_risk}</b> at risk · <b className="text-off-ink">{all.off_track}</b> off track · {all.no_data} no data
           </span>
           <StatusBar counts={{ on: all.on_track, risk: all.at_risk, off: all.off_track, none: all.no_data }} className="w-40" />
         </div>

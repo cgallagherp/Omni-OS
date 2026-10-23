@@ -15,71 +15,90 @@ There is no separate API server. Reads happen in server components via `loadComp
 |---|---|
 | `/login` | Supabase email/password sign-in (demo personas in demo mode) |
 | `/` | Redirect: Omni staff → `/portfolio`, company users → their company |
-| `/portfolio` | Omni portfolio overview — company cards ordered by execution health, escalations, upcoming meetings |
+| `/portfolio` | Omni portfolio (always Omni-branded): Monday scorecards, company cards ordered by execution health, escalations, upcoming Boards/offsites |
 | `/portfolio/compare` | Execution score breakdown and comparable-KPI matrix |
-| `/c/[slug]` | **Blueprint** — single-page operating dashboard (+ Omni-only confidential panel) |
-| `/c/[slug]/north-star` | Editable North Star, versions, conditions, assumptions, roadmap, financial trajectory |
-| `/c/[slug]/flight-plan` | Hierarchy list (`?view=roadmap` for timeline) |
-| `/c/[slug]/flight-plan/[type]/[id]` | Winning Move / Annual goal / Quarterly priority detail: chain, children, KPIs, issues, dependencies, updates, audit |
-| `/c/[slug]/scoreboard` | Weekly/monthly KPI grid with inline entry, CSV import, export |
-| `/c/[slug]/scoreboard/[metricId]` | KPI detail: chart, history, links, issues, audit |
-| `/c/[slug]/scoreboard/export` | CSV export route (RLS-scoped) |
-| `/c/[slug]/meetings` | Rhythm: upcoming, live, history, cadence |
-| `/c/[slug]/meetings/[id]` | Agenda preview → live meeting → permanent summary |
-| `/c/[slug]/execution` | Actions / issues / decision log |
-| `/c/[slug]/execution/issue/[id]` | Issue detail: strategic context, decisions, actions, meetings |
-| `/c/[slug]/crew`, `/crew/[id]` | Accountability chart, ownership matrix, person commitments, hires / capability / development |
-| `/c/[slug]/quarterly-reset` | Guided reset; approval via `approve_quarterly_reset()` (SQL, security invoker, atomic) |
-| `/c/[slug]/assistant` | Operating analyst: rule-based analyses with source references; optional Claude narrative |
-| `/c/[slug]/report` | Printable monthly board pack |
-| `/c/[slug]/settings` | Company profile, Winning Move limit, members & roles (company admins) |
+| `/c/[slug]` | **Blueprint** — attention vs routine, North Star, Flight Plan, scoreboard, Crew summary, Mission Control, Next steps (+ Omni-only panel) |
+| `/c/[slug]/north-star` | Vision → Mission → Values, destination, buyer story, conditions, versions, roadmap, trajectory |
+| `/c/[slug]/flight-plan` | Three-Year Outcomes → 12-Month Objectives → 90-Day Priorities (`?view=roadmap` for timeline) |
+| `/c/[slug]/flight-plan/[type]/[id]` | Plan item detail; priorities show success criteria, milestones and offsite result |
+| `/c/[slug]/crew`, `/crew/[id]` | Accountability chart, ELT and ownership, agreed organisational actions |
+| `/c/[slug]/mission-control` | "What needs attention this week?" — Priorities → Owners → Scorecard → Issues → Decisions → Actions |
+| `/c/[slug]/weekly-scorecard` | Monday KPI scorecard: live draft, CEO approval and send, history, delivery log |
+| `/c/[slug]/scoreboard` (+ `[metricId]`, `export`) | All KPIs: grid, inline entry, CSV import/export, detail |
+| `/c/[slug]/meetings` (+ `[id]`) | Meetings & Rhythm: cadence, searchable history (`?q=`), agenda preview → live meeting → record |
+| `/c/[slug]/execution` (+ `issue/[id]`) | Issues, actions, decision log |
+| `/c/[slug]/reporting` (+ `[kind]/[period]`) | Flash, monthly Board check-in, quarterly Board pack: deadlines, compliance, commentary, publish, print |
+| `/c/[slug]/quarterly-reset` | 8-stage quarterly offsite (and annual reset); approval via `approve_quarterly_reset()` |
+| `/c/[slug]/listening` | Employee and customer listening rounds and their actions |
+| `/c/[slug]/calendar` | Rolling 12-month calendar and investor governance tracker |
+| `/c/[slug]/onboarding` | First 100 days: operating cycle, timetable, milestones |
+| `/c/[slug]/assistant` | Operating analyst with source references; optional Claude narrative |
+| `/c/[slug]/settings` (+ `branding`) | Company profile and Flight Plan limits, access; Appearance & Branding |
+| `/brand/logo/[companyId]` | Company logo, read with the user's session (RLS); private cache, versioned URL |
 | `/admin` | Platform admin: Omni assignment matrix, template-based onboarding |
 
 `/c/[slug]/layout.tsx` resolves access before any company page streams, so unauthorised slugs return a real 404.
 
 ## Data model (all company tables carry `company_id`)
 ```
-companies ─┬─ company_memberships (user, role: omni | company_admin | executive | observer)
+companies ─┬─ company_memberships (user, role: omni | ceo | company_admin | executive | observer)
+           ├─ company_branding (1:1; colours, logo bytes ≤1 MB raster; Omni defaults when absent)
            ├─ crew_members (people & seats; reports_to → accountability chart; may link to a login)
-           ├─ north_stars (1:1) ─ north_star_versions (trigger-written history)
+           ├─ north_stars (1:1; VMV, destination, buyer story) ─ north_star_versions (trigger)
            ├─ success_conditions, milestones
-           ├─ winning_moves ─ annual_goals ─ quarterly_priorities ─ actions
+           ├─ winning_moves (Three-Year Outcomes) ─ annual_goals (12-Month Objectives)
+           │     ─ quarterly_priorities (90-Day Priorities; success_criteria, outcome) ─ priority_milestones
            │                              quarters ┘
-           ├─ metrics ─ metric_values (one row per reporting period; per-period target = budget)
-           │         └ metric_links → winning_move | annual_goal | quarterly_priority
-           ├─ meetings ─ meeting_attendees, meeting_agenda_items (snapshotted agenda)
-           ├─ issues (→ metric, priority, goal, raised/resolved in meeting, escalated_to_omni)
-           ├─ decisions (→ issue, meeting) ─ actions (→ decision, issue, priority, meeting)
-           ├─ dependencies (polymorphic edges between plan items), comments (updates)
-           ├─ org_gaps (hires, capability gaps, development), quarterly_resets
+           ├─ metrics (in_weekly_scorecard) ─ metric_values · metric_links
+           ├─ meetings (weekly | board_monthly | board_quarterly | quarterly | annual | monthly)
+           │     ─ meeting_attendees, meeting_agenda_items (snapshotted agenda)
+           ├─ issues ─ decisions ─ actions (→ metric = corrective action, listening_round, priority, meeting)
+           ├─ weekly_scorecards (approved rows + recipients) · email_outbox
+           ├─ board_reports (flash | monthly_board | quarterly_board; content + frozen snapshot)
+           ├─ listening_rounds (aggregate results only) · onboarding_milestones · governance_items
+           ├─ org_actions (critical_role | hire | structure | capability → priority / objective)
+           ├─ quarterly_resets (offsite: stage notes, scorecard keep/drop, strategic issues, company update)
+           ├─ dependencies, comments
            ├─ investment_cases, omni_notes           ← Omni-only
-           └─ audit_log                               ← trigger-only
+           └─ audit_log                               ← trigger-only (logo bytes stripped)
 profiles (1:1 auth.users; platform_role: platform_admin | omni_team | null)
 ```
-Every owner is a `crew_members` row — exactly one accountable owner, enforced `NOT NULL`. Relationships use composite foreign keys `(company_id, id)` so a row can never point at another tenant's row.
+UI terminology maps onto the original table names (`winning_moves` = Three-Year Outcomes, `annual_goals` = 12-Month Objectives, `quarterly_priorities` = 90-Day Priorities) so history and foreign keys are unchanged. Every owner is a `crew_members` row — exactly one accountable owner, `NOT NULL`. Relationships use composite foreign keys `(company_id, id)`.
 
 ## Permission model
 | Level | Who | Can |
 |---|---|---|
 | read | any membership; platform admin | read company data |
-| write | executive, company_admin, omni | create/update plan, KPIs, meetings, issues… |
-| admin | company_admin, omni | North Star edits, archive, delete, settings |
+| write | executive, ceo, company_admin, omni | plan, KPIs, meetings, issues, listening, milestones… |
+| admin | ceo, company_admin, omni | North Star, settings, branding, publish reports, approve offsite |
+| approve scorecard | ceo, company_admin | approve and send the Monday scorecard |
+| leadership | omni, ceo, company_admin, executive | see Monday scorecards and their delivery log (Chair/observers cannot) |
 | omni | omni role + Omni staff profile | investment case, Omni notes |
 | platform admin | `profiles.platform_role = platform_admin` | all companies, administration |
 
-SQL helpers (`app.*`, security definer, always about `auth.uid()`) back the RLS policies. Triggers: `company_id` immutable; only platform admins grant/revoke the `omni` role; users can't change their own platform role; Winning Move limit from `companies.settings.max_winning_moves`.
+SQL helpers (`app.has_company_access / can_write / can_admin / is_omni_for / is_leadership_or_omni / can_approve_scorecard`) back the RLS policies. Triggers: `company_id` immutable; only platform admins grant the `omni` role; users can't change their own platform role; Three-Year Outcome limit (`settings.max_three_year_outcomes`) and 90-Day Priority hard limit (`settings.max_priorities`, stopped priorities excluded) enforced in the database; `settings.priority_target` (default 3) drives the UI guidance.
+
+## Branding
+`company_branding` stores three optional hex colours and an optional PNG/JPEG/WEBP logo (validated by magic bytes, ≤1 MB, no SVG). `getViewer()` loads colours and a versioned logo URL (never the bytes). `AppShell` derives tokens with `deriveBrandTokens()` (`src/lib/domain/brand.ts`: fill, readable foreground, hover, accessible text "ink", tint, border, chart series, focus ring) for the company in the URL, or Omni's defaults on `/portfolio` and `/admin`, and applies them to the shell and `<html>` (so portalled menus match). Switching company is a client navigation — no reload. Status colours (`on/risk/off/done/none`) are fixed tokens with separate accessible `*-ink` text shades.
 
 ## Derived logic (pure, unit-tested — `src/lib/domain`)
-- `metrics.ts` — status for higher/lower/range metrics with tolerance band; periods; YTD vs phased budget; trends.
-- `metric-view.ts` — per-metric view: latest, status history, deterioration, "not reported", exception flag.
-- `agenda.ts` — weekly/monthly agenda generation (KPI exceptions → priorities → previous actions → issues → decisions → new actions); carry-over flags.
+- `metrics.ts`, `metric-view.ts` — KPI status, periods, YTD vs phased budget, trends, "not reported", exceptions.
+- `weekly-scorecard.ts` — the Monday scorecard rows and email HTML.
+- `attention.ts` — "what needs attention this week" vs routine (Blueprint, Mission Control, portfolio).
+- `reporting.ts` — report deadlines (working days, Board dates, fiscal quarters), schedule and compliance.
+- `agenda.ts` — weekly agenda (four parts) and carry-over flags.
+- `operating-system.ts` — operating cycle, 100-day template, governance template, deadlines.
+- `brand.ts`, `logo-image.ts` — colour derivation and contrast; logo validation.
 - `health.ts` — transparent execution score for portfolio ranking.
+
+## Email
+`src/lib/email.ts` sends through Resend when `RESEND_API_KEY` and `EMAIL_FROM` are set. Every send is recorded in `email_outbox` with its status; without a provider the status is `not_configured` and recipients see the approved scorecard in Omni OS.
 
 ## AI assistant
 `src/lib/data/insights.ts` builds a **brief** from the RLS-scoped snapshot: facts (each with source ids that link to records) and rule-based suggestions, labelled separately. With `ANTHROPIC_API_KEY` set, `src/lib/actions/assistant.ts` sends only that brief to Claude (`claude-opus-5-5` by default, `ANTHROPIC_MODEL` to override; server-side refusal fallback enabled) with instructions to cite `[S#]` for every fact and keep recommendations in a separate section. Omni-only tables are never read by the brief, so tenant and confidentiality boundaries carry through.
 
 ## Service role usage
-Only `provisionUser()` in `src/lib/actions/admin.ts` (creating/inviting auth users) after a platform-admin or company-admin check. Everything else uses the user's session.
+Only `provisionUser()` in `src/lib/actions/admin.ts` (creating/inviting auth users) after a platform-admin or company-admin check. Everything else — including branding, logos and the Monday scorecard — uses the user's session.
 
 ## Integrations (future)
 `metric_values.source` (`manual | csv | integration | seed`) and `metrics.source` let connectors write the same model the UI and CSV import use.

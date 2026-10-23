@@ -7,15 +7,19 @@ import { loadCompanySnapshot } from "@/lib/data/snapshot";
 import { insertScoped, revalidateCompany, updateScoped } from "./common";
 import { ActionError, dbError, formObject, run, zOptional, zRequired, type ActionResult } from "./result";
 
-const TITLES = {
-  weekly: "Weekly Leadership Meeting",
-  monthly: "Monthly Operating Review",
-  quarterly: "Quarterly Strategic Reset",
-  annual: "Annual Strategic Planning",
-} as const;
+type MeetingKind = "weekly" | "monthly" | "quarterly" | "annual" | "board_monthly" | "board_quarterly";
+
+const TITLES: Record<MeetingKind, string> = {
+  weekly: "Weekly ELT meeting",
+  monthly: "Monthly operating review",
+  quarterly: "Quarterly offsite",
+  annual: "Annual strategy reset",
+  board_monthly: "Monthly Board",
+  board_quarterly: "Quarterly Board",
+};
 
 const meetingSchema = z.object({
-  type: z.enum(["weekly", "monthly", "quarterly", "annual"]),
+  type: z.enum(["weekly", "monthly", "quarterly", "annual", "board_monthly", "board_quarterly"]),
   title: zOptional(200),
   scheduled_at: z.string().min(1, "Choose a date and time"),
   facilitator_id: z
@@ -47,7 +51,7 @@ export async function scheduleMeeting(companyId: string, fd: FormData): Promise<
   });
 }
 
-async function generateAgenda(ctx: CompanyContext, meetingId: string, type: "weekly" | "monthly" | "quarterly" | "annual") {
+async function generateAgenda(ctx: CompanyContext, meetingId: string, type: MeetingKind) {
   const snap = await loadCompanySnapshot(ctx.supabase, ctx.company.companyId);
   if (!snap) throw new ActionError("Company not found");
   const { data: prior, error } = await ctx.supabase
@@ -104,7 +108,7 @@ export async function startMeeting(companyId: string, meetingId: string): Promis
 }
 
 /** Creates an ad-hoc meeting for now and starts it straight away. */
-export async function startAdHocMeeting(companyId: string, type: "weekly" | "monthly" | "quarterly" | "annual"): Promise<ActionResult<{ id: string }>> {
+export async function startAdHocMeeting(companyId: string, type: MeetingKind): Promise<ActionResult<{ id: string }>> {
   return run(async () => {
     const ctx = await requireCompanyPermission(companyId, "write");
     const id = await insertScoped(ctx, "meetings", { type, title: TITLES[type], scheduled_at: new Date().toISOString(), status: "scheduled" });

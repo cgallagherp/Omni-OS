@@ -106,12 +106,12 @@ export default async function ComparePage() {
                   <Num v={s.financials.ebitda?.variancePct ?? null} signed />
                   <Num v={pOk} good={0.7} />
                   <Num v={kOk} good={0.6} />
-                  <td className={cn("px-3 py-3 text-right tabular", s.meetingsLast4Weeks < 4 && "text-risk")}>{s.meetingsLast4Weeks}/4</td>
-                  <td className={cn("px-3 py-3 text-right tabular", s.overdueActions.length > 2 && "text-off")}>
+                  <td className={cn("px-3 py-3 text-right tabular", s.meetingsLast4Weeks < 4 && "text-risk-ink")}>{s.meetingsLast4Weeks}/4</td>
+                  <td className={cn("px-3 py-3 text-right tabular", s.overdueActions.length > 2 && "text-off-ink")}>
                     {s.overdueActions.length}
                     <span className="text-muted-foreground">/{s.openActions.length}</span>
                   </td>
-                  <td className={cn("px-4 py-3 text-right tabular", s.openIssues.some((i) => i.priority === "critical") && "font-medium text-off")}>{s.openIssues.filter((i) => i.priority === "critical").length}</td>
+                  <td className={cn("px-4 py-3 text-right tabular", s.openIssues.some((i) => i.priority === "critical") && "font-medium text-off-ink")}>{s.openIssues.filter((i) => i.priority === "critical").length}</td>
                 </tr>
               );
             })}
@@ -167,6 +167,6 @@ export default async function ComparePage() {
 }
 
 function Num({ v, signed, good }: { v: number | null; signed?: boolean; good?: number }) {
-  const tone = v === null ? "" : signed ? (v >= 0 ? "text-on" : v > -0.05 ? "text-risk" : "text-off") : good !== undefined ? (v >= good ? "text-on" : v >= good - 0.2 ? "text-risk" : "text-off") : "";
+  const tone = v === null ? "" : signed ? (v >= 0 ? "text-on-ink" : v > -0.05 ? "text-risk-ink" : "text-off-ink") : good !== undefined ? (v >= good ? "text-on-ink" : v >= good - 0.2 ? "text-risk-ink" : "text-off-ink") : "";
   return <td className={cn("px-3 py-3 text-right font-medium tabular", tone)}>{formatPct(v, signed ? 1 : 0, signed)}</td>;
 }

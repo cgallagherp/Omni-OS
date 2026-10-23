@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Crew member" };
 
+const ORG_ACTION_LABEL = { critical_role: "critical role", hire: "recruitment priority", structure: "structure", capability: "capability" } as const;
+
 export default async function PersonPage({ params }: { params: Promise<{ slug: string; id: string }> }) {
   const { slug, id } = await params;
   const ctx = await getCompanyContext(slug);
@@ -26,7 +28,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
   if (!snap || !person) notFound();
   const [{ data: decisions }, { data: gaps }] = await Promise.all([
     ctx.supabase.from("decisions").select("*").eq("company_id", cid).eq("owner_id", id).order("decided_on", { ascending: false }).limit(8),
-    ctx.supabase.from("org_gaps").select("*").eq("company_id", cid).or(`owner_id.eq.${id},crew_member_id.eq.${id}`),
+    ctx.supabase.from("org_actions").select("*").eq("company_id", cid).eq("owner_id", id).neq("status", "closed"),
   ]);
   const manager = person.reports_to ? snap.crewById.get(person.reports_to) : null;
   const reports = snap.crew.filter((c) => c.reports_to === id);
@@ -93,10 +95,10 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
           </ul>
           {(gaps ?? []).length > 0 && (
             <div className="border-t px-4 py-3">
-              <p className="mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Organisational priorities</p>
+              <p className="mb-1.5 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Owns organisational actions</p>
               {(gaps ?? []).map((g) => (
                 <p key={g.id} className="text-[13px]">
-                  {g.title} <span className="text-xs text-muted-foreground">({g.type}, {g.status.replace("_", " ")})</span>
+                  {g.title} <span className="text-xs text-muted-foreground">({ORG_ACTION_LABEL[g.type]}, {g.status.replace("_", " ")})</span>
                 </p>
               ))}
             </div>
@@ -109,9 +111,9 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
           </CardHeader>
           <div className="divide-y text-sm">
             {[
-              ...moves.map((x) => ({ href: `flight-plan/winning_move/${x.id}`, kind: "Winning Move", title: x.title, status: x.status, extra: `${x.progress}%` })),
-              ...goals.map((x) => ({ href: `flight-plan/annual_goal/${x.id}`, kind: "Annual goal", title: x.title, status: x.status, extra: `${x.progress}%` })),
-              ...priorities.map((x) => ({ href: `flight-plan/quarterly_priority/${x.id}`, kind: "Priority", title: x.title, status: x.status, extra: `due ${formatDate(x.due_date, { year: false })}` })),
+              ...moves.map((x) => ({ href: `flight-plan/winning_move/${x.id}`, kind: "Three-Year Outcome", title: x.title, status: x.status, extra: `${x.progress}%` })),
+              ...goals.map((x) => ({ href: `flight-plan/annual_goal/${x.id}`, kind: "12-Month Objective", title: x.title, status: x.status, extra: `${x.progress}%` })),
+              ...priorities.map((x) => ({ href: `flight-plan/quarterly_priority/${x.id}`, kind: "90-Day Priority", title: x.title, status: x.status, extra: `due ${formatDate(x.due_date, { year: false })}` })),
             ].map((r) => (
               <Link key={r.href} href={`/c/${slug}/${r.href}`} className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
                 <StatusDot status={r.status} />
@@ -152,7 +154,7 @@ export default async function PersonPage({ params }: { params: Promise<{ slug: s
                 <div key={a.id} className="flex items-center gap-2.5 px-4 py-2">
                   <ActionCheckbox companyId={cid} id={a.id} status={a.status} canWrite={ctx.can.write} />
                   <span className="min-w-0 flex-1 text-[13px]">{a.title}</span>
-                  <span className={cn("shrink-0 text-xs", overdue ? "font-medium text-off" : "text-muted-foreground")}>{overdue ? relativeDays(a.due_date) : formatDate(a.due_date, { year: false })}</span>
+                  <span className={cn("shrink-0 text-xs", overdue ? "font-medium text-off-ink" : "text-muted-foreground")}>{overdue ? relativeDays(a.due_date) : formatDate(a.due_date, { year: false })}</span>
                 </div>
               );
             })}

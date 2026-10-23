@@ -1,8 +1,12 @@
 # Omni OS
 
-The Omni Operating System as software: a multi-company operating platform for Omni portfolio companies (North Star, Flight Plan, Scoreboard, Rhythm, Crew, Quarterly Reset) and a portfolio view for Omni's investment and operating teams.
+The Omni Operating System as software: a multi-company operating platform for Omni portfolio companies — **North Star, Flight Plan, Crew and Mission Control** — and a portfolio view for Omni's investment and operating team. *Begin with the buyer. Focus on less. Execute every week.*
 
-> **Demonstration data:** the seed creates two fictional companies (Clinara — B2B vertical SaaS; Kestrel Compliance Services — tech-enabled services). They are flagged `is_demo` and every screen showing them carries a banner.
+It covers the Blueprint dashboard, the Monday KPI scorecard (CEO-approved, sent to Omni), the weekly ELT meeting, the monthly flash and Board check-in, the quarterly Board pack, the 8-stage quarterly offsite and annual reset, employee and customer listening, the first 100 days, the governance calendar, and per-company branding on top of Omni's identity.
+
+![Blueprint](docs/screenshots/blueprint.png)
+
+> **Demonstration data:** the seed creates three fictional companies — Clinara (B2B vertical SaaS, own branding), Kestrel Compliance Services (tech-enabled services, own branding) and Ashworth Analytics (38 days after completion, mid first-100-days, Omni default branding). They are flagged `is_demo` and every screen showing them carries a banner.
 
 ## Prerequisites
 - Node 20+ (tested on 22), npm
@@ -20,12 +24,12 @@ Sign in with any demo account (password `OmniDemo!2026`) — the login page list
 
 | Account | Role | Sees |
 |---|---|---|
-| priya@omni.demo | Omni operating partner | Both companies + portfolio, confidential notes |
+| priya@omni.demo | Omni operating partner | All three companies + portfolio, Monday scorecards, confidential notes |
 | tom@omni.demo | Omni investment director | Clinara only (explicit assignment) |
 | sam@omni.demo | Platform administrator | Everything + administration |
-| daniel@clinara.demo / sarah@kestrel.demo | Company admin (CEO) | Own company |
-| marcus@clinara.demo, aisha@…, nadia@kestrel.demo … | Executive | Own company |
-| helen@clinara.demo | Read-only observer (chair) | Own company, no edits |
+| daniel@clinara.demo / sarah@kestrel.demo / imogen@ashworth.demo | CEO | Own company; approves the Monday scorecard; branding and settings |
+| marcus@clinara.demo, aisha@…, nadia@kestrel.demo, raj@ashworth.demo … | Executive | Own company |
+| helen@clinara.demo | Chair / Board observer (read-only) | Own company, no edits, no Monday scorecards |
 
 ## Tests
 ```bash
@@ -36,10 +40,19 @@ PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e   # full wor
 
 ## Deploying (Vercel + Supabase)
 1. Create a Supabase project; run `npx supabase link` then `npx supabase db push` to apply `supabase/migrations`.
-2. In Vercel set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only), `NEXT_PUBLIC_DEMO_MODE=false` for production, optional `ANTHROPIC_API_KEY`.
+2. In Vercel set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only), `NEXT_PUBLIC_DEMO_MODE=false` for production, and optionally `ANTHROPIC_API_KEY` (assistant narrative) and `RESEND_API_KEY` + `EMAIL_FROM` (Monday scorecard email; without them the scorecard is delivered in-app and logged as "email not configured").
 3. Do **not** seed demo data into production. (`npm run db:seed` refuses non-local URLs unless `SEED_ALLOW_REMOTE=true`.)
 
 Deployment has not been performed from this environment (no Vercel/Supabase cloud credentials). See `docs/decisions.md`.
+
+Branding needs no configuration: Omni's identity is the default, and each company sets its own logo and colours in **Settings → Appearance & Branding**.
+
+## Screenshots
+| | |
+|---|---|
+| ![Mission Control](docs/screenshots/mission-control.png) | ![Monday scorecard](docs/screenshots/monday-scorecard.png) |
+| ![Appearance & Branding](docs/screenshots/branding.png) | ![Portfolio](docs/screenshots/portfolio.png) |
+| ![Kestrel Blueprint (company branding)](docs/screenshots/blueprint-kestrel.png) | ![First 100 days](docs/screenshots/first-100-days.png) |
 
 ## Docs
 - `docs/product-spec.md` — what the product does

@@ -1,8 +1,8 @@
 # Omni OS — project instructions
 
-Omni OS turns the Omni Operating System (North Star · Flight Plan · Crew · Rhythm) into a multi-tenant SaaS for private-equity portfolio companies and Omni's investment/operating team. Principle: **Begin with the buyer. Focus on less. Execute every week.**
+Omni OS turns the Omni Operating System (North Star · Flight Plan · Crew · Mission Control — Rhythm is the cadence inside Mission Control) into a multi-tenant SaaS for private-equity portfolio companies and Omni's investment/operating team. Principle: **Begin with the buyer. Focus on less. Execute every week.**
 
-Read `docs/architecture.md` before structural changes and `docs/decisions.md` for why things are the way they are. See also `AGENTS.md` (Next.js 16 notes — this is *not* the Next.js in most training data; check `node_modules/next/dist/docs/`).
+Read `docs/architecture.md` before structural changes and `docs/decisions.md` for why things are the way they are. The Chair & CEO Briefing (v4) is the methodology source; UI terms map onto older table names (`winning_moves` = Three-Year Outcomes, `annual_goals` = 12-Month Objectives, `quarterly_priorities` = 90-Day Priorities). See also `AGENTS.md` (Next.js 16 notes — this is *not* the Next.js in most training data; check `node_modules/next/dist/docs/`).
 
 ## Stack
 Next.js 16 App Router (Turbopack, `src/proxy.ts` not middleware) · React 19 · TypeScript · Tailwind v4 · shadcn-style components hand-written in `src/components/ui` (registry is blocked by network policy) · Radix (`radix-ui`) · Recharts · Supabase (Postgres 17, Auth, PostgREST) · zod · Vitest · Playwright.
@@ -21,7 +21,10 @@ Next.js 16 App Router (Turbopack, `src/proxy.ts` not middleware) · React 19 · 
 4. **One connected system.** Derived state (KPI status, exceptions, agenda, health) comes from pure functions in `src/lib/domain/*` (unit-tested) fed by `loadCompanySnapshot(s)` in `src/lib/data/snapshot.ts`. Don't duplicate status logic in components.
 5. **No fake functionality.** Every button must work against persisted data. Demo data is flagged `companies.is_demo` and shown with a banner; the seed refuses non-local targets unless `SEED_ALLOW_REMOTE=true`.
 6. Audit: significant tables have the `app.audit()` trigger; the North Star is versioned by trigger. Don't bypass with service role in app code.
-7. Design: Rubik, restrained neutrals, brand accent `--brand` (from `NEXT_PUBLIC_BRAND_PRIMARY`, placeholder until official values). Status colours via `on/risk/off/done/none` tokens. Dense, Linear-like layouts; no decorative gradients.
+7. Design: Rubik, Omni palette (`src/lib/domain/brand.ts`, `globals.css`). Company branding comes from `company_branding` via `deriveBrandTokens()` — use `bg-brand`, `text-brand-ink` (accessible text), `bg-brand-subtle`, `hover:bg-brand-hover`; never hard-code a brand colour. Status colours are fixed `on/risk/off/done/none` tokens (text: `text-*-ink`) and must never take brand colours. `/portfolio` and `/admin` are always Omni-branded. Dense, Linear-like layouts; no decorative gradients.
+8. No confidential individual assessments (performance, psychometrics, 360, coaching, succession, pay) — Crew records agreed organisational actions only.
+9. The Monday scorecard is KPI | Actual | Target | Status | Agreed corrective action only — never add commentary. Missing results are "not reported", never on track.
+10. Next.js page files may only export page fields; shared constants go in `src/lib/domain`. Values exported from `"use client"` modules can't be used in server components.
 
 ## Layout
-`src/app/(app)/c/[slug]/…` company modules · `src/app/(app)/portfolio` Omni views · `src/lib/{auth,domain,data,actions}` · `supabase/migrations` · `scripts/seed` · `tests/{unit,integration,e2e}`.
+`src/app/(app)/c/[slug]/…` company modules (incl. `mission-control`, `weekly-scorecard`, `reporting`, `quarterly-reset`, `listening`, `calendar`, `onboarding`, `settings/branding`) · `src/app/(app)/portfolio` Omni views · `src/lib/{auth,domain,data,actions}` · `supabase/migrations` · `scripts/seed` · `tests/{unit,integration,e2e}`.

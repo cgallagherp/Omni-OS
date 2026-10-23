@@ -44,7 +44,14 @@ const annualGoalSchema = z.object({
   target_value: zNumber,
   current_value: zNumber,
 });
-const prioritySchema = z.object({ ...base, quarter_id: zUuid, annual_goal_id: zUuid });
+const prioritySchema = z.object({
+  ...base,
+  status: z.enum(["on_track", "at_risk", "off_track"], { message: "A 90-day priority is on track, at risk or off track" }),
+  success_criteria: zOptional(2000),
+  due_date: zDate.refine((v) => v !== null, "A deadline is required"),
+  quarter_id: zUuid,
+  annual_goal_id: zUuid,
+});
 const actionSchema = z.object({
   title: zRequired("Title"),
   description: zOptional(),
@@ -55,6 +62,8 @@ const actionSchema = z.object({
   issue_id: zOptionalUuid,
   decision_id: zOptionalUuid,
   meeting_id: zOptionalUuid,
+  metric_id: zOptionalUuid,
+  listening_round_id: zOptionalUuid,
 });
 
 export async function saveWinningMove(companyId: string, id: string | null, fd: FormData): Promise<ActionResult> {
@@ -64,7 +73,7 @@ export async function saveWinningMove(companyId: string, id: string | null, fd: 
     if (id) await updateScoped(ctx, "winning_moves", id, data);
     else await insertScoped(ctx, "winning_moves", { ...data, sort_order: 99 });
     revalidateCompany(ctx);
-    return { ok: true, message: id ? "Winning Move updated" : "Winning Move added" };
+    return { ok: true, message: id ? "Three-Year Outcome updated" : "Three-Year Outcome added" };
   });
 }
 
@@ -73,7 +82,7 @@ export async function archiveWinningMove(companyId: string, id: string): Promise
     const ctx = await requireCompanyPermission(companyId, "admin");
     await updateScoped(ctx, "winning_moves", id, { archived: true });
     revalidateCompany(ctx);
-    return { ok: true, message: "Winning Move archived" };
+    return { ok: true, message: "Three-Year Outcome archived" };
   });
 }
 
@@ -84,7 +93,7 @@ export async function saveAnnualGoal(companyId: string, id: string | null, fd: F
     if (id) await updateScoped(ctx, "annual_goals", id, data);
     else await insertScoped(ctx, "annual_goals", { ...data, sort_order: 99 });
     revalidateCompany(ctx);
-    return { ok: true, message: id ? "Annual goal updated" : "Annual goal added" };
+    return { ok: true, message: id ? "12-month objective updated" : "12-month objective added" };
   });
 }
 
@@ -129,7 +138,8 @@ export type PlanEntity = keyof typeof ENTITY_TABLE;
 export async function updatePlanItem(companyId: string, entity: PlanEntity, id: string, patch: { status?: string; progress?: number }): Promise<ActionResult> {
   return run(async () => {
     const ctx = await requireCompanyPermission(companyId, "write");
-    const parsed = z.object({ status: rag.optional(), progress: zPercent.optional() }).parse(patch);
+    const statusSchema = entity === "quarterly_priority" ? z.enum(["on_track", "at_risk", "off_track"]) : rag;
+    const parsed = z.object({ status: statusSchema.optional(), progress: zPercent.optional() }).parse(patch);
     if (!ENTITY_TABLE[entity]) throw new ActionError("Unknown item type");
     await updateScoped(ctx, ENTITY_TABLE[entity], id, parsed);
     revalidateCompany(ctx);
@@ -142,6 +152,36 @@ export async function deletePlanItem(companyId: string, entity: PlanEntity | "ac
     await deleteScoped(ctx, entity === "action" ? "actions" : ENTITY_TABLE[entity], id);
     revalidateCompany(ctx);
     return { ok: true, message: "Deleted" };
+  });
+}
+
+const milestoneSchema = z.object({ title: zRequired("Milestone", 300), due_date: zDate });
+
+/** Milestones on a 90-day priority. */
+export async function addPriorityMilestone(companyId: string, priorityId: string, fd: FormData): Promise<ActionResult> {
+  return run(async () => {
+    const ctx = await requireCompanyPermission(companyId, "write");
+    const data = milestoneSchema.parse(formObject(fd));
+    const { count } = await ctx.supabase.from("priority_milestones").select("id", { count: "exact", head: true }).eq("company_id", companyId).eq("priority_id", priorityId);
+    await insertScoped(ctx, "priority_milestones", { ...data, priority_id: priorityId, sort_order: count ?? 0 });
+    revalidateCompany(ctx);
+    return { ok: true, message: "Milestone added" };
+  });
+}
+
+export async function setPriorityMilestoneDone(companyId: string, id: string, done: boolean): Promise<ActionResult> {
+  return run(async () => {
+    const ctx = await requireCompanyPermission(companyId, "write");
+    await updateScoped(ctx, "priority_milestones", id, { done, done_at: done ? new Date().toISOString() : null });
+    revalidateCompany(ctx);
+  });
+}
+
+export async function deletePriorityMilestone(companyId: string, id: string): Promise<ActionResult> {
+  return run(async () => {
+    const ctx = await requireCompanyPermission(companyId, "write");
+    await deleteScoped(ctx, "priority_milestones", id);
+    revalidateCompany(ctx);
   });
 }
 
@@ -163,6 +203,8 @@ export async function addComment(companyId: string, entityType: (typeof COMMENTA
     const ctx = await requireCompanyPermission(companyId, "write");
     if (!COMMENTABLE.includes(entityType)) throw new ActionError("Cannot comment on this item");
     const data = commentSchema.parse(formObject(fd));
+    if (entityType === "quarterly_priority" && data.status && !["on_track", "at_risk", "off_track"].includes(data.status))
+      throw new ActionError("A 90-day priority is on track, at risk or off track");
     if (entityType in ENTITY_TABLE && (data.status || data.progress !== undefined)) {
       await updateScoped(ctx, ENTITY_TABLE[entityType as PlanEntity], entityId, {
         ...(data.status ? { status: data.status } : {}),

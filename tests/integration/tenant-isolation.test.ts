@@ -36,7 +36,15 @@ const TENANT_TABLES = [
   "issues",
   "decisions",
   "actions",
-  "org_gaps",
+  "org_actions",
+  "priority_milestones",
+  "weekly_scorecards",
+  "email_outbox",
+  "board_reports",
+  "listening_rounds",
+  "onboarding_milestones",
+  "governance_items",
+  "company_branding",
   "quarterly_resets",
   "comments",
   "audit_log",
@@ -134,7 +142,7 @@ describe("Omni-only confidential information", () => {
     const tomCases = await tom.from("investment_cases").select("company_id");
     expect(tomCases.data?.map((c) => c.company_id)).toEqual([clinara]);
     const priyaCases = await priya.from("investment_cases").select("company_id");
-    expect(priyaCases.data?.length).toBe(2);
+    expect(priyaCases.data?.length).toBe(3); // Clinara, Kestrel and Ashworth;
   });
 
   it("Omni staff see only explicitly assigned companies", async () => {

@@ -23,6 +23,8 @@ import { ActionDialog, AnnualGoalDialog, IssueDialog, PriorityDialog, WinningMov
 import { InlineProgress, InlineStatus } from "@/components/flight-plan/inline-status";
 import { ActionCheckbox } from "@/components/execution/action-checkbox";
 import { DependencyForm, RemoveDependencyButton } from "@/components/flight-plan/dependencies";
+import { PriorityMilestones } from "@/components/flight-plan/priority-milestones";
+import { OUTCOME_LABEL } from "@/lib/domain/status";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Flight Plan item" };
@@ -30,7 +32,7 @@ export const metadata: Metadata = { title: "Flight Plan item" };
 const TYPES = ["winning_move", "annual_goal", "quarterly_priority"] as const;
 type ItemType = (typeof TYPES)[number];
 const TABLE = { winning_move: "winning_moves", annual_goal: "annual_goals", quarterly_priority: "quarterly_priorities" } as const;
-const LABEL = { winning_move: "Winning Move", annual_goal: "Annual goal", quarterly_priority: "Quarterly priority", action: "Action" } as const;
+const LABEL = { winning_move: "Three-Year Outcome", annual_goal: "12-month objective", quarterly_priority: "90-day priority", action: "Action" } as const;
 
 export default async function ItemPage({ params }: { params: Promise<{ slug: string; type: string; id: string }> }) {
   const { slug, type: rawType, id } = await params;
@@ -88,11 +90,14 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
     return { id: d.id, outgoing, type: otherType, otherId, title: titleOf(otherType, otherId) ?? "Item from a previous period", note: d.note };
   });
   const depTargets = [
-    ...snap.winningMoves.map((w) => ({ value: `winning_move:${w.id}`, label: `Winning Move · ${w.title}` })),
+    ...snap.winningMoves.map((w) => ({ value: `winning_move:${w.id}`, label: `Three-Year Outcome · ${w.title}` })),
     ...snap.annualGoals.map((g) => ({ value: `annual_goal:${g.id}`, label: `Goal · ${g.title}` })),
     ...snap.priorities.map((p) => ({ value: `quarterly_priority:${p.id}`, label: `Priority · ${p.title}` })),
   ].filter((o) => !o.value.endsWith(id));
 
+  const priorityMilestonesRes = priority
+    ? await ctx.supabase.from("priority_milestones").select("id, title, due_date, done").eq("company_id", cid).eq("priority_id", priority.id).order("sort_order").order("due_date")
+    : { data: [] as Array<{ id: string; title: string; due_date: string | null; done: boolean }> };
   const activity = await loadActivity(ctx.supabase, cid, { tables: [TABLE[type]], ids: [id], commentType: type, commentId: id });
   const tone = item.status === "on_track" ? "on" : item.status === "at_risk" ? "risk" : item.status === "off_track" || item.status === "missed" ? "off" : item.status === "done" ? "done" : "default";
   const overdue = item.due_date && item.due_date < today && item.status !== "done";
@@ -102,7 +107,7 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
       {/* Chain of accountability */}
       <nav className="mb-4 flex flex-wrap items-center gap-1 text-[13px] text-muted-foreground" aria-label="Strategy chain">
         <Link href={`/c/${slug}/north-star`} className="inline-flex items-center gap-1 hover:text-foreground">
-          <Compass className="size-3.5 text-brand" /> North Star
+          <Compass className="size-3.5 text-brand-ink" /> North Star
         </Link>
         {move && (
           <>
@@ -145,11 +150,11 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
         {ctx.can.write && (
           <div className="flex shrink-0 gap-2">
             {type === "winning_move" && (
-              <WinningMoveDialog title="Edit Winning Move" trigger={<Button variant="outline" size="sm"><Pencil /> Edit</Button>} action={saveWinningMove.bind(null, cid, id)} crew={options.crew} defaults={item as WinningMove} />
+              <WinningMoveDialog title="Edit Three-Year Outcome" trigger={<Button variant="outline" size="sm"><Pencil /> Edit</Button>} action={saveWinningMove.bind(null, cid, id)} crew={options.crew} defaults={item as WinningMove} />
             )}
             {type === "annual_goal" && (
               <AnnualGoalDialog
-                title="Edit annual goal"
+                title="Edit 12-month objective"
                 trigger={<Button variant="outline" size="sm"><Pencil /> Edit</Button>}
                 action={saveAnnualGoal.bind(null, cid, id)}
                 crew={options.crew}
@@ -202,7 +207,7 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
             {formatDate(item.start_date, { year: false })} → {formatDate(item.due_date)}
           </span>
         </Cell>
-        <Cell label="Measurable outcome">
+        <Cell label={type === "quarterly_priority" ? "Defined outcome" : "Measurable outcome"}>
           <span className="line-clamp-2 text-sm">
             {item.measurable_outcome ?? "—"}
             {type === "annual_goal" && goal?.unit && goal.target_value !== null && (
@@ -216,10 +221,34 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
 
       <div className="grid gap-5 [&>*]:min-w-0 xl:grid-cols-[1fr_380px]">
         <div className="space-y-5">
+          {priority && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Success criteria & milestones</CardTitle>
+                {priority.outcome && (
+                  <Badge variant={priority.outcome === "achieved" ? "on" : priority.outcome === "partly_achieved" ? "risk" : priority.outcome === "missed" ? "off" : "outline"}>
+                    Result: {OUTCOME_LABEL[priority.outcome]}
+                  </Badge>
+                )}
+              </CardHeader>
+              <div className="border-b px-4 py-3 text-sm">
+                <p className="mb-1 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Measurable success criteria</p>
+                {priority.success_criteria ? <p className="whitespace-pre-line">{priority.success_criteria}</p> : <p className="text-muted-foreground italic">Not yet defined — edit the priority to add them.</p>}
+                {priority.outcome_note && <p className="mt-2 text-xs text-muted-foreground">Offsite review: {priority.outcome_note}</p>}
+              </div>
+              <PriorityMilestones
+                companyId={cid}
+                priorityId={priority.id}
+                canWrite={ctx.can.write}
+                today={today}
+                milestones={(priorityMilestonesRes.data ?? []).map((m) => ({ id: m.id, title: m.title, due_date: m.due_date, done: m.done }))}
+              />
+            </Card>
+          )}
           {type === "winning_move" && (
             <Card>
               <CardHeader>
-                <CardTitle>Annual goals</CardTitle>
+                <CardTitle>12-month objectives</CardTitle>
                 {ctx.can.write && (
                   <AnnualGoalDialog trigger={<Button variant="ghost" size="xs"><Plus /> Add</Button>} action={saveAnnualGoal.bind(null, cid, null)} crew={options.crew} moves={options.moves} fiscalYear={snap.fiscalYear} defaults={{ winning_move_id: id, owner_id: item.owner_id }} />
                 )}
@@ -230,7 +259,7 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
           {type === "annual_goal" && (
             <Card>
               <CardHeader>
-                <CardTitle>Quarterly priorities</CardTitle>
+                <CardTitle>90-day priorities</CardTitle>
                 {ctx.can.write && (
                   <PriorityDialog trigger={<Button variant="ghost" size="xs"><Plus /> Add</Button>} action={savePriority.bind(null, cid, null)} crew={options.crew} goals={options.goals} quarters={options.quarters} defaults={{ annual_goal_id: id, owner_id: item.owner_id, start_date: snap.activeQuarter?.start_date, due_date: snap.activeQuarter?.end_date }} />
                 )}
@@ -252,7 +281,7 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
                     <ActionCheckbox companyId={cid} id={a.id} status={a.status} canWrite={ctx.can.write} />
                     <span className={cn("min-w-0 flex-1 text-[13px]", a.status !== "open" && "text-muted-foreground line-through")}>{a.title}</span>
                     <Owner person={snap.crewById.get(a.owner_id)} />
-                    <span className={cn("w-24 text-right text-xs tabular", a.status === "open" && a.due_date && a.due_date < today ? "font-medium text-off" : "text-muted-foreground")}>
+                    <span className={cn("w-24 text-right text-xs tabular", a.status === "open" && a.due_date && a.due_date < today ? "font-medium text-off-ink" : "text-muted-foreground")}>
                       {a.status === "open" && a.due_date && a.due_date < today ? relativeDays(a.due_date) : formatDate(a.due_date, { year: false })}
                     </span>
                   </div>
@@ -320,7 +349,7 @@ export default async function ItemPage({ params }: { params: Promise<{ slug: str
                       .filter((d) => d.issue_id === i.id)
                       .map((d) => (
                         <p key={d.id} className="mt-1.5 flex items-start gap-1.5 text-xs text-muted-foreground">
-                          <Gavel className="mt-0.5 size-3 shrink-0 text-done" /> {d.title} · {formatDate(d.decided_on)}
+                          <Gavel className="mt-0.5 size-3 shrink-0 text-done-ink" /> {d.title} · {formatDate(d.decided_on)}
                         </p>
                       ))}
                   </div>
