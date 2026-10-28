@@ -17,7 +17,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
   const cid = ctx.company.companyId;
   const [{ data: company }, { data: members }] = await Promise.all([
     ctx.supabase.from("companies").select("*").eq("id", cid).single(),
-    ctx.supabase.from("company_memberships").select("user_id, role, created_at, profiles(full_name, email, title)").eq("company_id", cid).order("created_at"),
+    ctx.supabase.from("company_memberships").select("user_id, role, created_at, profiles(full_name, email, title)").eq("company_id", cid).neq("role", "agent").order("created_at"),
   ]);
   if (!company) redirect("/");
   const settings = (company.settings ?? {}) as { max_three_year_outcomes?: number; priority_target?: number; max_priorities?: number };

@@ -31,16 +31,24 @@ Sign in with any demo account (password `OmniDemo!2026`) — the login page list
 | marcus@clinara.demo, aisha@…, nadia@kestrel.demo, raj@ashworth.demo … | Executive | Own company |
 | helen@clinara.demo | Chair / Board observer (read-only) | Own company, no edits, no Monday scorecards |
 
+## Agents
+Four agents (Execution, CEO, Commercial, M&A) run in a separate worker process. See `docs/agents.md`.
+```bash
+npm run agents:worker        # long-running worker (or `npm run agents:tick` for one pass)
+npm run agents:eval          # scenario checks + per-company operating-quality report
+```
+In the demo, Clinara's Execution Agent follows up automatically and its Commercial Agent works a fictional sandbox CRM; Kestrel's agents are approval-gated and its M&A Agent searches a fictional dataset; Ashworth's agents are off. Open **Agents → Agent Control Centre** as a CEO, and **Agent requests** as an action owner.
+
 ## Tests
 ```bash
 npm run lint && npm run typecheck
-npm test                     # unit + tenant-isolation integration tests (reseeds local DB)
+npm test                     # unit + tenant-isolation + agent integration tests (reseeds local DB)
 PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e   # full workflow in a browser (reseeds)
 ```
 
 ## Deploying (Vercel + Supabase)
 1. Create a Supabase project; run `npx supabase link` then `npx supabase db push` to apply `supabase/migrations`.
-2. In Vercel set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only), `NEXT_PUBLIC_DEMO_MODE=false` for production, and optionally `ANTHROPIC_API_KEY` (assistant narrative) and `RESEND_API_KEY` + `EMAIL_FROM` (Monday scorecard email; without them the scorecard is delivered in-app and logged as "email not configured").
+2. In Vercel set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (server-only), `NEXT_PUBLIC_DEMO_MODE=false` for production, `SUPABASE_JWT_SECRET` and `AGENTS_ENCRYPTION_KEY` (agent worker, run as a separate process), and optionally `ANTHROPIC_API_KEY` (assistant narrative) and `RESEND_API_KEY` + `EMAIL_FROM` (Monday scorecard email; without them the scorecard is delivered in-app and logged as "email not configured").
 3. Do **not** seed demo data into production. (`npm run db:seed` refuses non-local URLs unless `SEED_ALLOW_REMOTE=true`.)
 
 Deployment has not been performed from this environment (no Vercel/Supabase cloud credentials). See `docs/decisions.md`.
@@ -53,9 +61,12 @@ Branding needs no configuration: Omni's identity is the default, and each compan
 | ![Mission Control](docs/screenshots/mission-control.png) | ![Monday scorecard](docs/screenshots/monday-scorecard.png) |
 | ![Appearance & Branding](docs/screenshots/branding.png) | ![Portfolio](docs/screenshots/portfolio.png) |
 | ![Kestrel Blueprint (company branding)](docs/screenshots/blueprint-kestrel.png) | ![First 100 days](docs/screenshots/first-100-days.png) |
+| ![Agent Control Centre](docs/screenshots/agents-overview.png) | ![Approval queue (M&A approaches)](docs/screenshots/agents-approvals.png) |
+| ![KPI with a CEO Agent investigation](docs/screenshots/agents-kpi-investigation.png) | ![Agent requests inbox](docs/screenshots/agents-inbox.png) |
 
 ## Docs
 - `docs/product-spec.md` — what the product does
 - `docs/architecture.md` — routes, data model, security model
+- `docs/agents.md` — the agentic execution layer: agents, authority, engine, connections
 - `docs/implementation-plan.md` — milestones and status
 - `docs/decisions.md` — decision log and known limitations

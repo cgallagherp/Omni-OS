@@ -47,7 +47,7 @@ export class PermissionError extends Error {
   }
 }
 
-const RANK: Record<CompanyRole, number> = { observer: 0, executive: 1, company_admin: 2, ceo: 2, omni: 3 };
+const RANK: Record<CompanyRole, number> = { agent: -1, observer: 0, executive: 1, company_admin: 2, ceo: 2, omni: 3 };
 
 export function roleAllows(role: CompanyRole, level: PermissionLevel): boolean {
   switch (level) {
@@ -68,6 +68,7 @@ export const roleLabel: Record<CompanyRole, string> = {
   company_admin: "Company administrator",
   executive: "Executive",
   observer: "Chair / Board observer",
+  agent: "Agent principal",
 };
 
 /** Loads the signed-in user and their company access. Cached per request. */

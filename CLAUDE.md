@@ -13,6 +13,7 @@ Next.js 16 App Router (Turbopack, `src/proxy.ts` not middleware) · React 19 · 
 - `npm run dev` · `npm run build` · `npm run lint` · `npm run typecheck`
 - `npm test` — unit + RLS integration tests (reseeds the local DB) · `SKIP_DB=1 npx vitest run tests/unit` — unit only
 - `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e` — end-to-end workflow (reseeds)
+- `npm run agents:tick` (one pass) / `npm run agents:worker` · `npm run agents:eval` — agent worker and evaluation. After editing a migration run `npx supabase db reset` before tests.
 
 ## Non-negotiable rules
 1. **Tenant isolation is enforced in the database.** Every company table has `company_id`, RLS policies using `app.has_company_access / app.can_write / app.can_admin / app.is_omni_for`, and composite FKs `(company_id, x_id)` so records can't reference another tenant. New tables must follow the same pattern (add to the loops in `20261022000002_security.sql` or a new migration) and get a test in `tests/integration/tenant-isolation.test.ts`.
@@ -24,7 +25,8 @@ Next.js 16 App Router (Turbopack, `src/proxy.ts` not middleware) · React 19 · 
 7. Design: Rubik, Omni palette (`src/lib/domain/brand.ts`, `globals.css`). Company branding comes from `company_branding` via `deriveBrandTokens()` — use `bg-brand`, `text-brand-ink` (accessible text), `bg-brand-subtle`, `hover:bg-brand-hover`; never hard-code a brand colour. Status colours are fixed `on/risk/off/done/none` tokens (text: `text-*-ink`) and must never take brand colours. `/portfolio` and `/admin` are always Omni-branded. Dense, Linear-like layouts; no decorative gradients.
 8. No confidential individual assessments (performance, psychometrics, 360, coaching, succession, pay) — Crew records agreed organisational actions only.
 9. The Monday scorecard is KPI | Actual | Target | Status | Agreed corrective action only — never add commentary. Missing results are "not reported", never on track.
-10. Next.js page files may only export page fields; shared constants go in `src/lib/domain`. Values exported from `"use client"` modules can't be used in server components.
+10. **Agents** (`src/lib/agents`, `docs/agents.md`) act only as their company's agent principal (RLS, never the service role for company data). Every consequential write goes through a security-definer function that re-checks `app.agent_mode` or an approved proposal; Level 5 stays approval-gated; side effects go through `rt.once`; findings are confirmed / hypothesis / missing with sources. Agents never send external communications, change commitments or commercial terms, or assess named individuals on their own authority. New agent tables follow rule 1.
+11. Next.js page files may only export page fields; shared constants go in `src/lib/domain`. Values exported from `"use client"` modules can't be used in server components.
 
 ## Layout
 `src/app/(app)/c/[slug]/…` company modules (incl. `mission-control`, `weekly-scorecard`, `reporting`, `quarterly-reset`, `listening`, `calendar`, `onboarding`, `settings/branding`) · `src/app/(app)/portfolio` Omni views · `src/lib/{auth,domain,data,actions}` · `supabase/migrations` · `scripts/seed` · `tests/{unit,integration,e2e}`.

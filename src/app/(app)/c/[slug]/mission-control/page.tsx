@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Mail } from "lucide-react";
 import { getCompanyContext } from "@/lib/auth";
+import { loadAgentWork } from "@/lib/data/agents";
+import { AgentEvidence } from "@/components/agents/agent-notice";
+
 import { attentionOf, loadCompanySnapshot } from "@/lib/data/snapshot";
 import { formatDate, relativeDays } from "@/lib/domain/format";
 import { MEETING_TYPE_LABEL } from "@/lib/domain/status";
@@ -25,6 +28,7 @@ export default async function MissionControlPage({ params }: { params: Promise<{
   const s = await loadCompanySnapshot(ctx.supabase, ctx.company.companyId);
   if (!s) return null;
   const base = `/c/${slug}`;
+  const agentWork = await loadAgentWork(ctx.supabase, ctx.company.companyId);
   const attention = attentionOf(s);
   const today = s.now.toISOString().slice(0, 10);
   const weekEnd = new Date(s.now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
@@ -73,6 +77,8 @@ export default async function MissionControlPage({ params }: { params: Promise<{
           </>
         }
       />
+
+      <AgentEvidence slug={slug} work={agentWork} title="Agents" limit={4} />
 
       <Card data-testid="mc-attention">
         <CardHeader>

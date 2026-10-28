@@ -97,8 +97,11 @@ SQL helpers (`app.has_company_access / can_write / can_admin / is_omni_for / is_
 ## AI assistant
 `src/lib/data/insights.ts` builds a **brief** from the RLS-scoped snapshot: facts (each with source ids that link to records) and rule-based suggestions, labelled separately. With `ANTHROPIC_API_KEY` set, `src/lib/actions/assistant.ts` sends only that brief to Claude (`claude-opus-5-5` by default, `ANTHROPIC_MODEL` to override; server-side refusal fallback enabled) with instructions to cite `[S#]` for every fact and keep recommendations in a separate section. Omni-only tables are never read by the brief, so tenant and confidentiality boundaries carry through.
 
-## Service role usage
-Only `provisionUser()` in `src/lib/actions/admin.ts` (creating/inviting auth users) after a platform-admin or company-admin check. Everything else — including branding, logos and the Monday scorecard — uses the user's session.
+## Agents
+See `docs/agents.md`. `src/lib/agents/*`: registry (agents, tools, action categories and caps), runtime (step machine, tools, idempotent side effects, proposals), engine (signals, detectors, queue claiming, retries), workflows, pure analysis modules (`analysis/*`, unit-tested), connectors (channels, CRM, market sources, encrypted secrets). Tables: `agent_configs`, `integration_connections`, `integration_secrets`, `agent_investigations`, `agent_runs`, `agent_events`, `agent_approvals`, `agent_messages`, `agent_side_effects`, `agent_usage`, `agent_signals`, `crm_sandbox_*`, `ma_theses`, `ma_targets`, `ma_sandbox_companies` — all company-scoped with RLS (`app.can_see_agents` = leadership, Omni or the agent principal). The worker (`scripts/agents/worker.ts`) is a separate process.
 
-## Integrations (future)
+## Service role usage
+Only `provisionUser()` in `src/lib/actions/admin.ts` (creating/inviting auth users) after a platform-admin or company-admin check. Everything else — including branding, logos and the Monday scorecard — uses the user's session. The agent worker (an offline process, not a request path) uses it only to claim runs, create the per-company agent principal, mint its token and decrypt connection credentials; all agent reads and writes run as the agent principal under RLS.
+
+## Integrations
 `metric_values.source` (`manual | csv | integration | seed`) and `metrics.source` let connectors write the same model the UI and CSV import use.

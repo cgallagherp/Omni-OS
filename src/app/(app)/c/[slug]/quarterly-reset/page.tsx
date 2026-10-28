@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus, ShieldCheck } from "lucide-react";
 import { getCompanyContext } from "@/lib/auth";
+import { loadAgentWork } from "@/lib/data/agents";
+import { AgentQuarterSummary } from "@/components/agents/agent-notice";
 import { loadCompanySnapshot } from "@/lib/data/snapshot";
 import { formOptions } from "@/lib/data/options";
 import { formatDate, formatMetric, formatMoney, formatPct } from "@/lib/domain/format";
@@ -54,6 +56,7 @@ export default async function QuarterlyOffsitePage({ params }: { params: Promise
   const snap = await loadCompanySnapshot(ctx.supabase, cid);
   if (!snap) return null;
   const q = snap.activeQuarter;
+  const agentWork = await loadAgentWork(ctx.supabase, cid, { since: q ? `${q.start_date}T00:00:00Z` : undefined });
   const [{ data: resets }, { data: quarters }, { data: closedPriorities }] = await Promise.all([
     ctx.supabase.from("quarterly_resets").select("*").eq("company_id", cid).order("created_at", { ascending: false }),
     ctx.supabase.from("quarters").select("*").eq("company_id", cid).order("start_date", { ascending: false }),
@@ -279,7 +282,9 @@ export default async function QuarterlyOffsitePage({ params }: { params: Promise
         <Stage n={7} title="Strategic issues" subtitle="Two or three issues that matter most to the North Star — discuss, decide, conclude.">
           <div className="grid gap-4 p-4 lg:grid-cols-[1fr_320px]">
             <StrategicQuestions companyId={cid} resetId={draft.id} initial={questions} disabled={!canEdit} />
-            <div>
+            <div className="space-y-4">
+              {q && <AgentQuarterSummary slug={slug} work={agentWork} since={q.start_date} />}
+              <div>
               <p className="mb-2 text-[11px] font-semibold tracking-[0.06em] text-muted-foreground uppercase">Open high-priority issues</p>
               <ul className="space-y-1.5">
                 {strategicCandidates.map((i) => (
@@ -292,6 +297,7 @@ export default async function QuarterlyOffsitePage({ params }: { params: Promise
                 ))}
                 {!strategicCandidates.length && <li className="text-sm text-muted-foreground">None open.</li>}
               </ul>
+              </div>
             </div>
           </div>
         </Stage>

@@ -16,6 +16,8 @@ import { PriorityBadge } from "@/components/os/status";
 import { ActionDialog, DecisionDialog, IssueDialog } from "@/components/os/entity-forms";
 import { ActionCheckbox } from "@/components/execution/action-checkbox";
 import { cn } from "@/lib/utils";
+import { loadAgentWork } from "@/lib/data/agents";
+import { AgentMarker } from "@/components/agents/agent-notice";
 
 export const metadata: Metadata = { title: "Issues & Actions" };
 
@@ -40,6 +42,7 @@ export default async function ExecutionPage({ params, searchParams }: { params: 
     ctx.supabase.from("decisions").select("*").eq("company_id", cid).order("decided_on", { ascending: false }).order("created_at", { ascending: false }),
     ctx.supabase.from("meetings").select("id, title, scheduled_at").eq("company_id", cid),
   ]);
+  const agentWork = await loadAgentWork(ctx.supabase, cid);
   const meetingById = new Map((meetings ?? []).map((m) => [m.id, m]));
   const priorityById = new Map(snap.priorities.map((p) => [p.id, p]));
   const issueById = new Map((issues ?? []).map((i) => [i.id, i]));
@@ -131,7 +134,10 @@ export default async function ExecutionPage({ params, searchParams }: { params: 
                     <div className="flex min-w-0 flex-1 items-start gap-3">
                       <ActionCheckbox companyId={cid} id={a.id} status={a.status} canWrite={ctx.can.write} />
                       <div className="min-w-0">
-                        <p className={cn("text-[13.5px]", a.status !== "open" && "text-muted-foreground line-through")}>{a.title}</p>
+                        <p className={cn("flex flex-wrap items-center gap-2 text-[13.5px]", a.status !== "open" && "text-muted-foreground line-through")}>
+                          {a.title}
+                          {a.status === "open" && <AgentMarker slug={slug} items={agentWork.bySubject.get(a.id)} />}
+                        </p>
                         <p className="truncate text-xs text-muted-foreground">
                           {p && (
                             <Link href={`/c/${slug}/flight-plan/quarterly_priority/${p.id}`} className="hover:underline">

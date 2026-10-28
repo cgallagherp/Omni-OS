@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, Link2, Pencil } from "lucide-react";
 import { getCompanyContext } from "@/lib/auth";
 import { loadCompanySnapshot } from "@/lib/data/snapshot";
+import { loadAgentWork } from "@/lib/data/agents";
+import { AgentNotice } from "@/components/agents/agent-notice";
 import { loadActivity } from "@/lib/data/activity";
 import { formOptions } from "@/lib/data/options";
 import { formatDate, formatMetric, formatPct, targetLabel } from "@/lib/domain/format";
@@ -83,6 +85,7 @@ export default async function MetricPage({ params }: { params: Promise<{ slug: s
   const selected = linkedItems.map((i) => `${i.type}:${i.id}`);
   const ytdSummary = m.aggregation === "flow" ? ytd(view.points.map((p) => ({ period_start: p.period, value: p.value, target: p.target })), fiscalYearStart(new Date(), snap.company.fiscal_year_start_month), m.target_value) : null;
   const crew = options.crew;
+  const agentWork = await loadAgentWork(ctx.supabase, cid);
   const openIssue = (issues ?? []).find((i) => i.status !== "resolved");
   const vals = view.points.filter((p) => p.value !== null).map((p) => p.value!) ;
   const best = vals.length ? (m.direction === "lower_is_better" ? Math.min(...vals) : Math.max(...vals)) : null;
@@ -92,6 +95,7 @@ export default async function MetricPage({ params }: { params: Promise<{ slug: s
       <Link href={`/c/${slug}/scoreboard${m.frequency === "monthly" ? "?view=monthly" : ""}`} className="mb-3 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-3.5" /> Scoreboard
       </Link>
+      <AgentNotice slug={slug} items={agentWork.bySubject.get(m.id)} />
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">

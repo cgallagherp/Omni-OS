@@ -12,7 +12,10 @@
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "agents:worker": "tsx --conditions=react-server scripts/agents/worker.ts",
+    "agents:tick": "tsx --conditions=react-server scripts/agents/worker.ts --once",
+    "agents:eval": "tsx --conditions=react-server scripts/agents/eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.1.0",

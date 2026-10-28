@@ -17,6 +17,7 @@ import { buildWeeklyScorecard, scorecardEmailHtml, weekStartOf } from "../../src
 import { fiscalYearOf } from "../../src/lib/domain/metrics";
 import { reportDue } from "../../src/lib/domain/reporting";
 import { TODAY, addDays, day, iso, prevQuarter, quarterBounds, quarterOf, rng, type CompanySpec, type MetricSpec } from "./lib";
+import { seedAgents, seedMa } from "./agents";
 import { clinara } from "./clinara";
 import { kestrel } from "./kestrel";
 import { ashworth } from "./ashworth";
@@ -61,7 +62,7 @@ async function cleanup() {
   for (let page = 1; ; page++) {
     const { data, error: e } = await db.auth.admin.listUsers({ page, perPage: 200 });
     if (e) throw e;
-    for (const u of data.users) if (u.email?.endsWith(".demo")) await db.auth.admin.deleteUser(u.id);
+    for (const u of data.users) if (u.email?.endsWith(".demo") || u.email?.endsWith("@agents.omni-os.invalid")) await db.auth.admin.deleteUser(u.id);
     if (data.users.length < 200) break;
   }
 }
@@ -484,6 +485,10 @@ async function seedCompany(spec: CompanySpec, userIds: Map<string, string>, seed
   await insert("investment_cases", [{ ...spec.investmentCase, company_id: cid }]);
   await insert("omni_notes", spec.omniNotes.map((n) => ({ company_id: cid, body: n.body, intervention_level: n.level, author_id: userIds.get("priya@omni.demo")!, created_at: addDays(TODAY, -n.daysAgo).toISOString() })));
 
+  // Agentic layer: principal, configuration, sandbox connections and data
+  await seedAgents(db, cid, spec.company.slug, ceoUser);
+  if (spec.company.slug === "kestrel") await seedMa(db, cid, ceoUser, owner("ma"));
+
   return { cid, metricValues: values.length };
 }
 
@@ -495,6 +500,8 @@ async function main() {
   const a = await seedCompany(clinara, userIds, 7);
   const b = await seedCompany(kestrel, userIds, 11);
   const c = await seedCompany(ashworth, userIds, 13);
+  // seeding is not news: the agents start from a quiet signal queue
+  await db.from("agent_signals").update({ processed_at: new Date().toISOString() }).is("processed_at", null);
   console.log(`✓ Clinara (${a.metricValues} KPI observations), Kestrel (${b.metricValues}), Ashworth (${c.metricValues})`);
   console.log(`✓ ${userIds.size} demo users — password: ${DEMO_PASSWORD}`);
 }

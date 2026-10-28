@@ -4,7 +4,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
+  Bot,
   Briefcase,
+  Inbox,
+  ShieldCheck,
   CalendarClock,
   CalendarDays,
   Check,
@@ -55,7 +58,7 @@ export interface ShellViewer {
 }
 
 type NavItem = { href: string; label: string; icon: typeof Target; exact?: boolean };
-const COMPANY_NAV: Array<{ label?: string; items: NavItem[] }> = [
+const COMPANY_NAV: Array<{ label?: string; leadership?: boolean; items: NavItem[] }> = [
   { items: [{ href: "", label: "Blueprint", icon: LayoutDashboard, exact: true }] },
   {
     label: "Pillars",
@@ -74,6 +77,7 @@ const COMPANY_NAV: Array<{ label?: string; items: NavItem[] }> = [
       { href: "/meetings", label: "Meetings & Rhythm", icon: CalendarClock },
       { href: "/execution", label: "Issues & Actions", icon: ListChecks },
       { href: "/reporting", label: "Reporting", icon: FileText },
+      { href: "/inbox", label: "Agent requests", icon: Inbox },
     ],
   },
   {
@@ -83,6 +87,14 @@ const COMPANY_NAV: Array<{ label?: string; items: NavItem[] }> = [
       { href: "/listening", label: "Listening", icon: Ear },
       { href: "/calendar", label: "Calendar & governance", icon: CalendarDays },
       { href: "/onboarding", label: "First 100 days", icon: Flag },
+    ],
+  },
+  {
+    label: "Agents",
+    leadership: true,
+    items: [
+      { href: "/agents", label: "Agent Control Centre", icon: Bot, exact: false },
+      { href: "/agents/approvals", label: "Approvals", icon: ShieldCheck },
     ],
   },
   { items: [{ href: "/assistant", label: "Assistant", icon: Sparkles }] },
@@ -189,12 +201,17 @@ function SidebarBody({ viewer, onNavigate }: { viewer: ShellViewer; onNavigate?:
           </DropdownMenu>
         </div>
         {base &&
-          COMPANY_NAV.map((group, gi) => (
+          COMPANY_NAV.filter((g) => !g.leadership || ["omni", "ceo", "company_admin", "executive"].includes(current!.role)).map((group, gi) => (
             <div key={gi} className="space-y-0.5">
               {group.label && <p className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">{group.label}</p>}
               {group.items.map((item) => {
                 const href = `${base}${item.href}`;
-                const active = item.exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+                const active =
+                  item.href === "/agents"
+                    ? pathname.startsWith(href) && !pathname.startsWith(`${href}/approvals`)
+                    : item.exact
+                      ? pathname === href
+                      : pathname === href || pathname.startsWith(`${href}/`);
                 return <NavLink key={item.href} href={href} label={item.label} icon={item.icon} active={active} onNavigate={onNavigate} />;
               })}
             </div>

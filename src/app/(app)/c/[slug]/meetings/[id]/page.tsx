@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Gavel, ListPlus, Users } from "lucide-react";
 import { getCompanyContext } from "@/lib/auth";
+import { loadAgentWork } from "@/lib/data/agents";
+import { AgentEvidence } from "@/components/agents/agent-notice";
+
 import { loadCompanySnapshot } from "@/lib/data/snapshot";
 import { loadMeetingBundle } from "@/lib/data/meetings";
 import { formOptions } from "@/lib/data/options";
@@ -28,10 +31,17 @@ export default async function MeetingPage({ params }: { params: Promise<{ slug: 
   if (!bundle) notFound();
   const crew = snap.crew.map((c) => ({ id: c.id, full_name: c.full_name, title: c.title, is_open_seat: c.is_open_seat, avatar_color: c.avatar_color }));
   const m = bundle.meeting;
+  const agentWork = await loadAgentWork(ctx.supabase, ctx.company.companyId);
+  const evidence = <AgentEvidence slug={slug} work={agentWork} title="Agent evidence for this meeting" />;
 
   if (m.status === "in_progress") {
     const options = await formOptions(ctx.supabase, snap);
-    return <LiveMeeting companyId={ctx.company.companyId} slug={slug} bundle={bundle} crew={crew} options={options} canWrite={ctx.can.write} />;
+    return (
+      <>
+        {agentWork.active.length + agentWork.pending.length > 0 && <div className="mb-4">{evidence}</div>}
+        <LiveMeeting companyId={ctx.company.companyId} slug={slug} bundle={bundle} crew={crew} options={options} canWrite={ctx.can.write} />
+      </>
+    );
   }
 
   const back = (
@@ -65,6 +75,7 @@ export default async function MeetingPage({ params }: { params: Promise<{ slug: 
           {live?.length ? <p className="text-sm text-muted-foreground">Another meeting is in progress.</p> : null}
         </div>
         <div className="space-y-4">
+          {evidence}
           {AGENDA_SECTIONS.map((s, n) => {
             const items = preview.filter((i) => i.section === s.key);
             return (
