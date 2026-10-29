@@ -21,7 +21,7 @@ export default async function AgentsLayout({ children, params }: { children: Rea
       <PageHeader
         eyebrow="Agents"
         title="Agent Control Centre"
-        description="Four agents work across the North Star, Flight Plan, Crew and Mission Control: they investigate, act within the authority management delegates, and follow through. What they found, what they did, what needs your decision, and what happened as a result."
+        description="Five agents work across the North Star, Flight Plan, Crew, Mission Control and integrations: they investigate, act within the authority management delegates, and follow through. What they found, what they did, what needs your decision, and what happened as a result."
       />
       <AgentsTabs base={`/c/${slug}/agents`} pending={count ?? 0} admin={ctx.can.admin} />
       {children}

@@ -22,7 +22,11 @@ export default async function InboxPage({ params }: { params: Promise<{ slug: st
   const actionIds = (messages ?? []).map((m) => (m.context as { action_id?: string }).action_id).filter(Boolean) as string[];
   const { data: actions } = actionIds.length ? await ctx.supabase.from("actions").select("id, title, status, due_date").in("id", actionIds) : { data: [] };
   const actionById = new Map((actions ?? []).map((a) => [a.id, a]));
-  const open = (messages ?? []).filter((m) => !m.responded_at);
+  const activityIds = (messages ?? []).map((m) => (m.context as { integration_activity_id?: string }).integration_activity_id).filter(Boolean) as string[];
+  const { data: activities } = activityIds.length ? await ctx.supabase.from("integration_activities").select("id, title, status, due_date, acquisition_id").in("id", activityIds) : { data: [] };
+  const activityById = new Map((activities ?? []).map((a) => [a.id, a]));
+  const reports = (messages ?? []).filter((m) => m.kind === "notice");
+  const open = (messages ?? []).filter((m) => !m.responded_at && m.kind !== "notice");
   const answered = (messages ?? []).filter((m) => m.responded_at);
 
   return (
@@ -35,6 +39,8 @@ export default async function InboxPage({ params }: { params: Promise<{ slug: st
       {!messages?.length && <EmptyState title="Nothing waiting for you" description="When an agent needs an update on one of your commitments, it appears here." />}
       {open.map((m) => {
         const a = actionById.get((m.context as { action_id?: string }).action_id ?? "");
+        const ia = activityById.get((m.context as { integration_activity_id?: string }).integration_activity_id ?? "");
+        const evidence = (m.context as { trigger?: string }).trigger === "evidence";
         return (
           <Card key={m.id} className="p-4" data-testid="agent-request">
             <div className="flex items-start gap-3">
@@ -46,6 +52,14 @@ export default async function InboxPage({ params }: { params: Promise<{ slug: st
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {AGENTS[m.agent_key as AgentKey].name} · {formatDateTime(m.created_at)}
+                  {ia && (
+                    <>
+                      {" · "}
+                      <Link href={`/c/${slug}/integrations/${ia.acquisition_id}?tab=plan#${ia.id}`} className="hover:underline">
+                        integration plan: {ia.status === "done" ? "done" : `due ${formatDate(ia.due_date)}`}
+                      </Link>
+                    </>
+                  )}
                   {a && (
                     <>
                       {" · "}
@@ -57,13 +71,29 @@ export default async function InboxPage({ params }: { params: Promise<{ slug: st
                 </p>
                 <p className="mt-2 text-[13.5px] whitespace-pre-line">{m.body}</p>
                 <div className="mt-3 border-t pt-3">
-                  <ReplyForm companyId={cid} messageId={m.id} canMarkDone={ctx.can.write && a?.status === "open"} />
+                  <ReplyForm companyId={cid} messageId={m.id} canMarkDone={ctx.can.write && (a ? a.status === "open" : ia ? evidence || !["done", "not_needed"].includes(ia.status) : false)} />
                 </div>
               </div>
             </div>
           </Card>
         );
       })}
+      {reports.length > 0 && (
+        <Card>
+          <div className="flex items-center gap-2 border-b px-4 py-2.5 text-[13px] font-medium">
+            <Inbox className="size-4 text-muted-foreground" /> Reports from agents
+          </div>
+          <ul className="divide-y">
+            {reports.slice(0, 8).map((m) => (
+              <li key={m.id} className="px-4 py-3">
+                <p className="text-[13px] font-medium">{m.subject}</p>
+                <p className="text-xs text-muted-foreground">{AGENTS[m.agent_key as AgentKey].name} · {formatDateTime(m.created_at)}</p>
+                <p className="mt-1 text-[13px] whitespace-pre-line text-muted-foreground">{m.body}</p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
       {answered.length > 0 && (
         <Card>
           <div className="flex items-center gap-2 border-b px-4 py-2.5 text-[13px] font-medium">

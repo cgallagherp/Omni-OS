@@ -84,9 +84,41 @@ export function ProposedAction({ type, payload }: { type: string; payload: unkno
           {p.description ? <p className="mt-1 text-muted-foreground">{String(p.description)}</p> : null}
         </div>
       );
+    case "change_integration_activity":
+      return (
+        <div className={box}>
+          <p className="text-xs text-muted-foreground">Integration plan · {String(p.activity_title ?? "activity")}</p>
+          Due date: <span className="tabular">{formatDate(String(p.expected_due_date ?? ""))}</span> <ArrowRight className="inline size-3.5" /> <span className="font-semibold tabular">{formatDate(String(p.new_due_date ?? ""))}</span>
+          <p className="mt-1 text-xs text-muted-foreground">Only applied if the activity still has its current date and is not complete. The approved baseline date is kept for variance reporting.</p>
+        </div>
+      );
     case "create_corrective_action": {
       const a = (p.action ?? {}) as P;
       const i = p.issue as P | undefined;
+      if (Array.isArray(p.actions)) {
+        const list = p.actions as P[];
+        return (
+          <div className={`${box} space-y-2`}>
+            {i && (
+              <div>
+                <p className="text-xs text-muted-foreground">New Mission Control issue · {String(i.priority ?? "high")} priority{p.acquisition_id ? " · linked to the integration" : ""}</p>
+                <p className="font-medium">{String(i.title)}</p>
+                {i.description ? <p className="mt-1 text-muted-foreground">{String(i.description)}</p> : null}
+              </div>
+            )}
+            <div>
+              <p className="text-xs text-muted-foreground">{list.length} agreed corrective action{list.length === 1 ? "" : "s"}, tracked by the agent</p>
+              <ul className="mt-1 space-y-1">
+                {list.map((x, n) => (
+                  <li key={n}>
+                    <span className="font-medium">{String(x.title)}</span> <span className="text-xs text-muted-foreground">— {String(x.owner_name ?? "")}, due {formatDate(String(x.due_date ?? ""))}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        );
+      }
       return (
         <div className={`${box} space-y-2`}>
           {i && (

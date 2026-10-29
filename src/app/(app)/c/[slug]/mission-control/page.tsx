@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Mail } from "lucide-react";
+import { Combine, AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Mail } from "lucide-react";
 import { getCompanyContext } from "@/lib/auth";
+import { loadIntegrationHome } from "@/lib/data/integration";
+import { HealthBadge } from "@/components/integration/ui";
 import { loadAgentWork } from "@/lib/data/agents";
 import { AgentEvidence } from "@/components/agents/agent-notice";
 
@@ -29,6 +31,9 @@ export default async function MissionControlPage({ params }: { params: Promise<{
   if (!s) return null;
   const base = `/c/${slug}`;
   const agentWork = await loadAgentWork(ctx.supabase, ctx.company.companyId);
+  // Integration exceptions only: routine integration tasks stay in the Integrations module
+  const integ = ["omni", "ceo", "company_admin", "executive"].includes(ctx.company.role) ? await loadIntegrationHome(ctx.supabase, ctx.company.companyId) : null;
+  const integrationExceptions = (integ?.rows ?? []).filter((r) => (r.a.status === "active" && (r.sum.health === "off_track" || r.sum.health === "at_risk" || [...r.assessed.values()].some((x) => x.status === "off_track"))) || r.a.status === "plan_in_review");
   const attention = attentionOf(s);
   const today = s.now.toISOString().slice(0, 10);
   const weekEnd = new Date(s.now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
@@ -79,6 +84,26 @@ export default async function MissionControlPage({ params }: { params: Promise<{
       />
 
       <AgentEvidence slug={slug} work={agentWork} title="Agents" limit={4} />
+
+      {integrationExceptions.length > 0 && (
+        <Card data-testid="mc-integrations">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-1.5"><Combine className="size-4 text-muted-foreground" /> Integrations needing attention</CardTitle>
+            <Link href={`${base}/integrations`} className="text-xs text-muted-foreground hover:text-foreground">Integrations →</Link>
+          </CardHeader>
+          <div className="divide-y">
+            {integrationExceptions.map((r) => {
+              const synOff = [...r.assessed.values()].filter((x) => x.status === "off_track").length;
+              return (
+                <Link key={r.a.id} href={`${base}/integrations/${r.a.id}`} className="flex flex-wrap items-center gap-3 px-4 py-2.5 hover:bg-accent/40">
+                  <span className="min-w-0 flex-1 text-[13px]"><span className="font-medium">{r.a.name}</span> <span className="text-muted-foreground">— {r.a.status === "plan_in_review" ? "integration plan awaiting approval" : [r.sum.criticalSlipDays ? `critical path ${r.sum.criticalSlipDays} days behind` : "", r.sum.overdue.filter((x) => x.critical).length ? `${r.sum.overdue.filter((x) => x.critical).length} critical activities overdue` : "", synOff ? `${synOff} synergy below plan` : ""].filter(Boolean).join(" · ") || "at risk"}</span></span>
+                  {r.a.status === "active" && <HealthBadge health={r.sum.health} />}
+                </Link>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       <Card data-testid="mc-attention">
         <CardHeader>

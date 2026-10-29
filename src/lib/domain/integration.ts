@@ -214,7 +214,8 @@ export function summariseIntegration(activities: ActivityLike[], deps: Dependenc
     criticalOpen,
     criticalSlipDays: Math.max(0, ...activities.filter((a) => a.critical).map((a) => assessments.get(a.id)!.slipDays)),
     pendingApprovals: activities.filter((a) => a.approval_status === "pending" && !closed(a)),
-    nextMilestone: milestones.filter((a) => !closed(a) && a.due_date).sort((a, b) => a.due_date!.localeCompare(b.due_date!))[0] ?? null,
+    // the next one still ahead; overdue milestones are reported as overdue
+    nextMilestone: milestones.filter((a) => !closed(a) && a.due_date && a.due_date >= today).sort((a, b) => a.due_date!.localeCompare(b.due_date!))[0] ?? null,
     workstreamHealth,
     assessments,
   };

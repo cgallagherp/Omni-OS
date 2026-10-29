@@ -206,6 +206,9 @@ const PROVIDERS = {
   hubspot: { name: "HubSpot CRM", secret: "Private app access token", live: true },
   salesforce: { name: "Salesforce", secret: "OAuth access token", live: true },
   companies_house: { name: "Companies House", secret: "API key", live: true },
+  sharepoint: { name: "SharePoint", secret: "Microsoft Graph access token (read-only)", live: true },
+  onedrive: { name: "OneDrive", secret: "Microsoft Graph access token (read-only)", live: true },
+  google_drive: { name: "Google Drive", secret: "Google Drive access token (drive.readonly)", live: true },
   crm_sandbox: { name: "Sandbox CRM (fictional data)", secret: null, live: false },
   ma_sandbox: { name: "Sandbox market-intelligence dataset (fictional)", secret: null, live: false },
 } as const;
@@ -221,6 +224,7 @@ export async function saveConnection(companyId: string, fd: FormData): Promise<A
     const secret = (o.secret ?? "").trim();
     const config: Record<string, string> = {};
     if (provider === "email_resend") config.from = z.string().trim().email("A verified sender address is required").parse(o.from);
+    if (provider === "sharepoint") config.site_id = z.string().trim().min(3, "The SharePoint site ID is required").max(300).parse(o.site_id);
     const status = meta.secret && !secret ? "needs_authorisation" : "connected";
     const { data: existing } = await ctx.supabase.from("integration_connections").select("id, status").eq("company_id", companyId).eq("provider", provider).maybeSingle();
     let id = existing?.id;

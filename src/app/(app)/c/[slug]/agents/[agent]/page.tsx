@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { AgentIcon, Findings, InvestigationStatus, ModeBadge, Timeline } from "@/components/agents/agent-ui";
 import { ApprovalCard, type ApprovalRow } from "@/components/agents/approval-card";
 import { CompleteTaskButton, RequestInvestigationDialog, TargetStageSelect } from "@/components/agents/controls";
+import { HandoverDialog } from "@/components/integration/controls";
+import { HealthBadge, MilestoneMeter } from "@/components/integration/ui";
+import { loadIntegrationHome } from "@/lib/data/integration";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Agent" };
@@ -119,7 +122,8 @@ export default async function AgentPage({ params }: { params: Promise<{ slug: st
             </Card>
           )}
           {agent === "commercial" && <CrmPanel slug={slug} companyId={cid} supabase={ctx.supabase} canWrite={ctx.can.write} />}
-          {agent === "ma" && <MaPanel companyId={cid} supabase={ctx.supabase} theses={thesesRes.data ?? []} canWrite={ctx.can.write} />}
+          {agent === "ma" && <MaPanel slug={slug} companyId={cid} supabase={ctx.supabase} theses={thesesRes.data ?? []} canWrite={ctx.can.write} canHandover={ctx.can.admin} />}
+          {agent === "integration" && <IntegrationPanel slug={slug} companyId={cid} supabase={ctx.supabase} />}
           <Card>
             <CardHeader>
               <CardTitle>Completed and results</CardTitle>
@@ -249,8 +253,13 @@ async function CrmPanel({ slug, companyId, supabase, canWrite }: { slug: string;
   );
 }
 
-async function MaPanel({ companyId, supabase, theses, canWrite }: { companyId: string; supabase: Sb; theses: Array<{ id: string; title: string; status: string; rationale: string; geographies: string[]; sectors: string[]; min_revenue: number | null; max_revenue: number | null; min_ebitda: number | null; exclusions: string[]; approved_at: string | null }>; canWrite: boolean }) {
-  const { data: targets } = await supabase.from("ma_targets").select("*").eq("company_id", companyId).order("fit_score", { ascending: false, nullsFirst: false });
+async function MaPanel({ slug, companyId, supabase, theses, canWrite, canHandover }: { slug: string; canHandover: boolean; companyId: string; supabase: Sb; theses: Array<{ id: string; title: string; status: string; rationale: string; geographies: string[]; sectors: string[]; min_revenue: number | null; max_revenue: number | null; min_ebitda: number | null; exclusions: string[]; approved_at: string | null }>; canWrite: boolean }) {
+  const [{ data: targets }, { data: crew }, { data: handed }] = await Promise.all([
+    supabase.from("ma_targets").select("*").eq("company_id", companyId).order("fit_score", { ascending: false, nullsFirst: false }),
+    supabase.from("crew_members").select("id, full_name, title, is_open_seat").eq("company_id", companyId),
+    supabase.from("acquisitions").select("id, ma_target_id").eq("company_id", companyId).not("ma_target_id", "is", null),
+  ]);
+  const handedOver = new Map((handed ?? []).map((h) => [h.ma_target_id, h.id]));
   return (
     <>
       {theses.map((t) => (
@@ -297,13 +306,51 @@ async function MaPanel({ companyId, supabase, theses, canWrite }: { companyId: s
                   <td className="px-2 py-2 text-right tabular">{t.fit_score ?? "—"}</td>
                   <td className="px-2 py-2 text-right tabular">{t.revenue !== null ? formatMoney(Number(t.revenue)) : <span className="text-muted-foreground">Unknown</span>}</td>
                   <td className="px-2 py-2 text-right tabular">{t.ebitda !== null ? formatMoney(Number(t.ebitda)) : <span className="text-muted-foreground">Unknown</span>}</td>
-                  <td className="px-4 py-2">{canWrite ? <TargetStageSelect companyId={companyId} id={t.id} stage={t.stage} /> : t.stage}</td>
+                  <td className="px-4 py-2">
+                    <span className="flex items-center gap-2">
+                      {canWrite ? <TargetStageSelect companyId={companyId} id={t.id} stage={t.stage} /> : t.stage}
+                      {handedOver.has(t.id) ? <Link href={`/c/${slug}/integrations/${handedOver.get(t.id)}`} className="text-xs text-brand-ink hover:underline">Integration →</Link> : canHandover && ["diligence", "in_discussion", "approached", "closed"].includes(t.stage) && <HandoverDialog companyId={companyId} slug={slug} targetId={t.id} targetName={t.name} crew={crew ?? []} />}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <p className="border-t px-4 py-2 text-[11px] text-muted-foreground">Financials are shown only where a source provides them; unknown values are never estimated. Last updated {formatDateTime(new Date().toISOString())}.</p>
+      </Card>
+    </>
+  );
+}
+
+async function IntegrationPanel({ slug, companyId, supabase }: { slug: string; companyId: string; supabase: Sb }) {
+  const home = await loadIntegrationHome(supabase, companyId);
+  const active = home.rows.filter((r) => r.a.status === "active");
+  const upcoming = active.flatMap((r) => (r.sum.nextMilestone ? [{ r, m: r.sum.nextMilestone }] : [])).sort((x, y) => (x.m.due_date ?? "").localeCompare(y.m.due_date ?? ""));
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Current integrations</CardTitle>
+          <Link href={`/c/${slug}/integrations`} className="text-xs text-muted-foreground hover:text-foreground">Integrations →</Link>
+        </CardHeader>
+        <ul className="divide-y text-[13px]">
+          {home.rows.filter((r) => r.a.status !== "cancelled").map((r) => (
+            <li key={r.a.id} className="grid gap-2 px-4 py-2.5 md:grid-cols-[1fr_180px_120px]">
+              <span><Link href={`/c/${slug}/integrations/${r.a.id}`} className="font-medium hover:underline">{r.a.name}</Link><span className="block text-xs text-muted-foreground">{r.a.status === "active" ? `${r.sum.overdue.length} overdue · ${r.atRiskWs} workstreams at risk · ${r.agentCases} agent cases${r.a.agent_paused ? " · paused" : ""}` : r.a.status.replace(/_/g, " ")}</span></span>
+              {r.activities ? <MilestoneMeter sum={r.sum} /> : <span className="text-xs text-muted-foreground">No plan yet</span>}
+              <span className="md:text-right">{r.a.status === "active" ? <HealthBadge health={r.sum.health} /> : null}</span>
+            </li>
+          ))}
+          {!home.rows.length && <li className="px-4 py-3 text-muted-foreground">No acquisitions yet.</li>}
+        </ul>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>Upcoming milestones</CardTitle></CardHeader>
+        <ul className="divide-y text-[13px]">
+          {upcoming.slice(0, 8).map(({ r, m }) => <li key={m.id} className="flex items-center justify-between gap-2 px-4 py-2"><span>{m.title} <span className="text-muted-foreground">· {r.a.name}</span></span><span className="text-xs tabular">{formatDate(m.due_date)}</span></li>)}
+          {!upcoming.length && <li className="px-4 py-3 text-muted-foreground">None.</li>}
+        </ul>
       </Card>
     </>
   );

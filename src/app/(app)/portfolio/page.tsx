@@ -14,6 +14,8 @@ import { BAND_META } from "@/lib/domain/health";
 import { quarterLabel } from "@/lib/domain/quarters";
 import { PageHeader, EmptyState } from "@/components/os/page";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { loadIntegrationHome } from "@/lib/data/integration";
+import { HealthBadge, MilestoneMeter, money } from "@/components/integration/ui";
 import { Badge } from "@/components/ui/badge";
 import { CompanyMark } from "@/components/os/logo";
 import { PriorityBadge, StatusBar, StatusDot } from "@/components/os/status";
@@ -43,6 +45,8 @@ export default async function PortfolioPage() {
   const thisWeek = weekStartOf(new Date());
   // The most recent approved Monday scorecard for each company (in-app delivery to Omni).
   const scorecards = snaps.map((s) => ({ s, latest: s.sentScorecards.find((w) => w.approved_at) ?? null }));
+  // Integrations across the portfolio (Omni sees each company's integrations it is assigned to)
+  const integrations = (await Promise.all(snaps.map(async (s) => ({ s, home: await loadIntegrationHome(supabase, s.company.id) })))).flatMap(({ s, home }) => home.rows.filter((r) => !["completed", "cancelled"].includes(r.a.status)).map((r) => ({ s, r })));
 
   return (
     <div className="fade-in">
@@ -260,6 +264,25 @@ export default async function PortfolioPage() {
               );
             })}
           </div>
+
+          {integrations.length > 0 && (
+            <Card className="mt-5" data-testid="portfolio-integrations">
+              <CardHeader>
+                <CardTitle>Integrations across the portfolio</CardTitle>
+                <span className="text-xs text-muted-foreground">Verified milestones and verified synergies only</span>
+              </CardHeader>
+              <div className="divide-y">
+                {integrations.map(({ s, r }) => (
+                  <Link key={r.a.id} href={`/c/${s.company.slug}/integrations/${r.a.id}`} className="grid items-center gap-3 px-4 py-2.5 hover:bg-accent/40 md:grid-cols-[1fr_200px_160px_110px]">
+                    <span className="flex min-w-0 items-center gap-3"><CompanyMark name={s.company.name} color={s.company.brand_color} logoUrl={logoOf.get(s.company.id)} /><span className="truncate text-[13px]"><span className="font-medium">{r.a.name}</span> <span className="text-muted-foreground">· {s.company.name}</span></span></span>
+                    {r.activities ? <MilestoneMeter sum={r.sum} /> : <span className="text-xs text-muted-foreground">Planning</span>}
+                    <span className="text-xs text-muted-foreground tabular">{r.totals.target ? `${money(r.totals.realised)} of ${money(r.totals.target)} synergies` : "No synergy targets yet"}</span>
+                    <span className="md:text-right">{r.a.status === "active" ? <HealthBadge health={r.sum.health} /> : <span className="text-xs text-muted-foreground">{r.a.status.replace(/_/g, " ")}</span>}</span>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          )}
 
           <div className="mt-5 grid gap-5 [&>*]:min-w-0 lg:grid-cols-[1.4fr_1fr]">
             <Card>

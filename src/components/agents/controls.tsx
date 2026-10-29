@@ -340,6 +340,9 @@ const PROVIDER_OPTIONS = [
   ["hubspot", "HubSpot CRM"],
   ["salesforce", "Salesforce"],
   ["companies_house", "Companies House"],
+  ["sharepoint", "SharePoint (integration documents)"],
+  ["onedrive", "OneDrive (integration documents)"],
+  ["google_drive", "Google Drive (integration documents)"],
   ["crm_sandbox", "Sandbox CRM (fictional data)"],
   ["ma_sandbox", "Sandbox market dataset (fictional)"],
 ] as const;
@@ -371,6 +374,11 @@ export function ConnectionDialog({ companyId }: { companyId: string }) {
               <Field label="Credential" error={e.secret} hint="Use a least-privilege token scoped to what the agent needs.">
                 <Input name="secret" type="password" autoComplete="off" />
               </Field>
+              {provider === "sharepoint" && (
+                <Field label="SharePoint site ID" error={e.site_id} hint="Microsoft Graph site id; the token needs Sites.Read.All or Files.Read.Selected">
+                  <Input name="site_id" required />
+                </Field>
+              )}
               {provider === "email_resend" && (
                 <Field label="Sender address" error={e.from}>
                   <Input name="from" type="email" placeholder="agents@yourcompany.com" required />

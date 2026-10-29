@@ -6,6 +6,7 @@ import {
   BarChart3,
   Bot,
   Briefcase,
+  Combine,
   Inbox,
   ShieldCheck,
   CalendarClock,
@@ -88,6 +89,11 @@ const COMPANY_NAV: Array<{ label?: string; leadership?: boolean; items: NavItem[
       { href: "/calendar", label: "Calendar & governance", icon: CalendarDays },
       { href: "/onboarding", label: "First 100 days", icon: Flag },
     ],
+  },
+  {
+    label: "M&A",
+    leadership: true,
+    items: [{ href: "/integrations", label: "Integrations", icon: Combine }],
   },
   {
     label: "Agents",
