@@ -35,16 +35,12 @@ export interface WaterfallStep { key: string; label: string; amount: number; kin
 /** Opening → movements → closing. Each bar floats from the running total; totals start at zero. */
 export function Waterfall({ steps, height = 300, unit = "currency" }: { steps: WaterfallStep[]; height?: number; unit?: ValueUnit }) {
   const router = useRouter();
-  let run = 0;
-  const data = steps.map((s) => {
-    if (s.kind === "total") {
-      run = s.amount;
-      return { ...s, base: 0, size: s.amount, end: s.amount };
-    }
-    const start = run;
-    run += s.amount;
-    return { ...s, base: Math.min(start, run), size: Math.abs(s.amount), end: run };
-  });
+  const data = steps.reduce<Array<WaterfallStep & { base: number; size: number; end: number }>>((acc, s) => {
+    const prev = acc.length ? acc[acc.length - 1].end : 0;
+    if (s.kind === "total") return [...acc, { ...s, base: 0, size: s.amount, end: s.amount }];
+    const end = prev + s.amount;
+    return [...acc, { ...s, base: Math.min(prev, end), size: Math.abs(s.amount), end }];
+  }, []);
   // the axis is zoomed to the running totals so small movements stay visible; totals are drawn from the axis floor
   const values = data.flatMap((d) => (d.kind === "total" ? [d.amount] : [d.base, d.base + d.size]));
   const min = Math.min(...values), max = Math.max(...values);

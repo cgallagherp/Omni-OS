@@ -20,7 +20,10 @@ function useUrl() {
   const set = (patch: Record<string, string | null>, drop: string[] = ["page"]) => {
     const q = new URLSearchParams(sp.toString());
     for (const k of drop) q.delete(k);
-    for (const [k, v] of Object.entries(patch)) (v === null || v === "" ? q.delete(k) : q.set(k, v));
+    for (const [k, v] of Object.entries(patch)) {
+      if (v === null || v === "") q.delete(k);
+      else q.set(k, v);
+    }
     start(() => router.push(`${pathname}${q.size ? `?${q}` : ""}`, { scroll: false }));
   };
   return { sp, set, pending, pathname };

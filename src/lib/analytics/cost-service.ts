@@ -30,7 +30,10 @@ export async function loadCostBase(src: AnalyticsSource, fyStart: number): Promi
   const months = [...status.keys()].sort();
   const gl = datasets.find((d) => d.key === "fct_gl_monthly");
   const coverage = { start: months[0] ?? gl?.coverage_start ?? "", end: months[months.length - 1] ?? gl?.coverage_end ?? "" };
-  return { src, fyStart, coverage, datasets, defs: new Map(defs.map((d) => [d.key, d])), dims, status, accounts, costCentres, suppliers, canPeople: domains.includes("people"), canTransactions: domains.includes("transactions") };
+  // the P&L line is a governed attribute of the chart of accounts
+  const lines = [...new Set(accounts.map((a) => a.pl_line))];
+  const dimsOut = [{ domain: "cost" as const, key: "line", label: "P&L line", values: lines.map((l) => ({ key: l, label: lineLabel(l) })) }, ...dims];
+  return { src, fyStart, coverage, datasets, defs: new Map(defs.map((d) => [d.key, d])), dims: dimsOut, status, accounts, costCentres, suppliers, canPeople: domains.includes("people"), canTransactions: domains.includes("transactions") };
 }
 
 export function costProvenance(b: CostBase, metricKey: string, period: string, months: string[], drill?: string): Provenance {

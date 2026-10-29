@@ -16,7 +16,7 @@ const select = "h-9 w-full rounded-md border bg-card px-2 text-sm";
 /** Record an evidenced issue (and optionally an agreed corrective action) in Mission Control, linked to the figure. */
 export function RaiseIssueButton({ companyId, analyticsRef, crew, defaultTitle, defaultDescription, metricId, size = "sm", label = "Raise in Mission Control" }: { companyId: string; analyticsRef: AnalyticsRef; crew: Array<{ id: string; label: string }>; defaultTitle: string; defaultDescription?: string; metricId?: string | null; size?: "sm" | "xs"; label?: string }) {
   const [withAction, setWithAction] = useState(false);
-  const due = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
+  const [due] = useState(() => new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10));
   return (
     <FormDialog
       title="Raise in Mission Control"
