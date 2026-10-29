@@ -21,6 +21,8 @@ import { seedAgents, seedIntegration, seedMa } from "./agents";
 import { clinara } from "./clinara";
 import { kestrel } from "./kestrel";
 import { ashworth } from "./ashworth";
+import { civicline } from "./civicline";
+import { seedIntelligence } from "./intelligence";
 
 config({ path: ".env.local" });
 config();
@@ -52,7 +54,7 @@ async function insert<T extends Tbl>(table: T, rows: Database["public"]["Tables"
 
 const OMNI_USERS = [
   { email: "sam@omni.demo", full_name: "Sam Ellis", title: "Head of Portfolio Operations", platform_role: "platform_admin" as const, companies: [] as string[] },
-  { email: "priya@omni.demo", full_name: "Priya Raman", title: "Operating Partner", platform_role: "omni_team" as const, companies: ["clinara", "kestrel", "ashworth"] },
+  { email: "priya@omni.demo", full_name: "Priya Raman", title: "Operating Partner", platform_role: "omni_team" as const, companies: ["clinara", "kestrel", "ashworth", "civicline"] },
   { email: "tom@omni.demo", full_name: "Tom Becker", title: "Investment Director", platform_role: "omni_team" as const, companies: ["clinara"] },
 ];
 
@@ -238,6 +240,7 @@ async function seedCompany(spec: CompanySpec, userIds: Map<string, string>, seed
       frequency: m.frequency, direction: m.direction, target_value: m.target ?? null, target_min: m.min ?? null, target_max: m.max ?? null,
       tolerance_pct: m.tolerance ?? 10, aggregation: m.aggregation ?? "stock", owner_id: owner(m.owner), comparable_key: m.comparable ?? null,
       is_key: m.isKey ?? false, in_weekly_scorecard: m.scorecard ?? false, sort_order: i,
+      analytics_metric_key: m.analytics ?? null, source: m.analytics ? "integration" : "manual",
     })),
   );
   const metrics = new Map(spec.metrics.map((m, i) => [m.key, metricRows[i].id]));
@@ -248,7 +251,7 @@ async function seedCompany(spec: CompanySpec, userIds: Map<string, string>, seed
     periods.forEach((p, i) => {
       const d = new Date(`${p.period}T00:00:00Z`);
       const r = m.series({ i, n, t: n > 1 ? Math.min(1, i / (n - 1)) : 1, period: p.period, month: d.getUTCMonth() + 1, year: d.getUTCFullYear(), noise, future: p.future });
-      values.push({ company_id: cid, metric_id: metrics.get(m.key)!, period_start: p.period, value: r.value, target: r.target ?? null, source: "seed" });
+      values.push({ company_id: cid, metric_id: metrics.get(m.key)!, period_start: p.period, value: r.value, target: r.target ?? null, source: m.analytics ? "integration" : "seed" });
     });
   }
   await insert("metric_values", values);
@@ -489,6 +492,15 @@ async function seedCompany(spec: CompanySpec, userIds: Map<string, string>, seed
   await seedAgents(db, cid, spec.company.slug, ceoUser);
   if (spec.company.slug === "kestrel") await seedMa(db, cid, ceoUser, owner("ma"));
   if (spec.company.slug === "clinara") await seedIntegration(db, cid, ceoUser);
+  if (spec.intelligence) {
+    const i = spec.intelligence;
+    await seedIntelligence(db, cid, {
+      slug: i.slug,
+      ccOwners: Object.fromEntries(Object.entries(i.ccOwners).map(([cc, key]) => [cc, owner(key)])),
+      grants: Object.entries(i.grants).map(([key, domains]) => ({ userId: userIds.get(spec.people.find((p) => p.key === key)!.email!)!, domains })),
+      grantedBy: ceoUser, agentDomains: i.agentDomains, crm: i.crm,
+    });
+  }
 
   return { cid, metricValues: values.length };
 }
@@ -501,9 +513,10 @@ async function main() {
   const a = await seedCompany(clinara, userIds, 7);
   const b = await seedCompany(kestrel, userIds, 11);
   const c = await seedCompany(ashworth, userIds, 13);
+  const d = await seedCompany(civicline, userIds, 17);
   // seeding is not news: the agents start from a quiet signal queue
   await db.from("agent_signals").update({ processed_at: new Date().toISOString() }).is("processed_at", null);
-  console.log(`✓ Clinara (${a.metricValues} KPI observations), Kestrel (${b.metricValues}), Ashworth (${c.metricValues})`);
+  console.log(`✓ Clinara (${a.metricValues} KPI observations), Kestrel (${b.metricValues}), Ashworth (${c.metricValues}), Civicline (${d.metricValues}; synthetic governed revenue and cost data)`);
   console.log(`✓ ${userIds.size} demo users — password: ${DEMO_PASSWORD}`);
 }
 

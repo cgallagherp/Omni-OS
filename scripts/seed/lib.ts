@@ -110,6 +110,8 @@ export interface MetricSpec {
   history: number; // number of completed periods of history
   futureTargets?: number; // budget periods after the last completed one
   series: Series;
+  /** bound to a governed analytical metric (values come from the data layer, not manual entry) */
+  analytics?: string;
   links?: Array<{ move?: string; goal?: string; priority?: string }>;
 }
 
@@ -207,6 +209,14 @@ export interface ListeningSeed {
 }
 
 export interface CompanySpec {
+  /** Revenue & Cost Intelligence on a synthetic governed dataset */
+  intelligence?: {
+    slug: "civicline" | "ashworth";
+    ccOwners: Record<string, string>;
+    grants: Record<string, Array<"revenue" | "cost" | "people" | "transactions">>;
+    agentDomains: Partial<Record<"ceo" | "commercial", Array<"revenue" | "cost" | "people" | "transactions">>>;
+    crm?: boolean;
+  };
   /** Demo reporting tweaks: headline for the latest flash; leave the latest Board check-in in draft. */
   reporting?: { flashHeadline?: string; latestCheckInDraft?: boolean; approveThisWeek?: boolean };
   company: {

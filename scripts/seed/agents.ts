@@ -36,13 +36,20 @@ const DEMO: Record<string, Partial<Record<AgentKey, { enabled: boolean; modes?: 
   },
   // Ashworth: conservative defaults (agents off) — the first 100 days.
   ashworth: {},
+  // Civicline: the CEO and Commercial Agents investigate governed revenue and cost exceptions;
+  // everything consequential needs approval.
+  civicline: {
+    execution: { enabled: true },
+    ceo: { enabled: true },
+    commercial: { enabled: true, modes: { internal_task: "approval" } },
+  },
 };
 
 export async function seedAgents(db: Db, cid: string, slug: string, ceoUserId: string) {
   await ensureAgentPrincipal(db, cid, slug);
   const conns = await ins(db, "integration_connections", [
     { company_id: cid, provider: "omni_inbox", display_name: "Omni OS inbox", mode: "live", status: "connected", scopes: ["messages.send"], connected_by: ceoUserId },
-    ...(slug === "clinara" ? [{ company_id: cid, provider: "crm_sandbox", display_name: "Sandbox CRM (fictional data)", mode: "sandbox", status: "connected", scopes: ["opportunities.read", "accounts.read", "tasks.write"], connected_by: ceoUserId }] : []),
+    ...(slug === "clinara" || slug === "civicline" ? [{ company_id: cid, provider: "crm_sandbox", display_name: "Sandbox CRM (fictional data)", mode: "sandbox", status: "connected", scopes: ["opportunities.read", "accounts.read", "tasks.write"], connected_by: ceoUserId }] : []),
     ...(slug === "kestrel" ? [{ company_id: cid, provider: "ma_sandbox", display_name: "Sandbox market-intelligence dataset (fictional)", mode: "sandbox", status: "connected", scopes: ["companies.search"], connected_by: ceoUserId }] : []),
   ]);
   const byProvider = new Map(conns.map((c) => [c.provider, c.id]));

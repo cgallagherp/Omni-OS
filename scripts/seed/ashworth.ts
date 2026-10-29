@@ -2,12 +2,16 @@
 // Acquired 38 days ago and part-way through the first 100 days. It has not
 // personalised its workspace, so it keeps the Omni identity.
 import { TODAY, addDays, at, iso, lastWeekday, type CompanySpec, type SeriesCtx } from "./lib";
+import { intelligenceFor } from "./intelligence";
+
+// Revenue and EBITDA come from the (synthetic) governed finance data, as they will from the
+// warehouse; the other KPIs are entered by the team.
+const { data } = intelligenceFor("ashworth");
 
 const Y = TODAY.getUTCFullYear();
 const m = (mn: number) => mn * 1_000_000;
 const acquired = iso(addDays(TODAY, -38));
 
-const monthlyPlan = (c: SeriesCtx, base: number, step: number) => base + (c.i - c.n + 1) * step;
 
 export const ashworth: CompanySpec = {
   company: {
@@ -22,6 +26,12 @@ export const ashworth: CompanySpec = {
     fiscal_year_start_month: 4,
   },
   onboardingDay: 38,
+  intelligence: {
+    slug: "ashworth",
+    ccOwners: { CC100: "ceo", CC110: "cfo", CC200: "commercial", CC320: "cto", CC400: "delivery" },
+    grants: { cfo: ["revenue", "cost", "people", "transactions"], commercial: ["revenue"], delivery: ["cost"] },
+    agentDomains: {},
+  },
   people: [
     { key: "ceo", full_name: "Imogen Clarke", title: "Chief Executive Officer", seat: "CEO", responsibilities: ["Owns the business and the plan", "Leads the ELT", "Board and Omni relationship"], email: "imogen@ashworth.demo", login: "ceo", avatar_color: "#0EA5E9" },
     { key: "cfo", full_name: "Raj Patel", title: "Chief Financial Officer", seat: "Finance", responsibilities: ["Monthly reporting", "Cash", "Budget"], reports_to: "ceo", email: "raj@ashworth.demo", login: "executive", avatar_color: "#8B5CF6" },
@@ -69,12 +79,14 @@ export const ashworth: CompanySpec = {
     {
       key: "revenue", name: "Revenue", category: "financial", unit: "currency", frequency: "monthly", direction: "higher_is_better", tolerance: 5,
       aggregation: "flow", owner: "cfo", comparable: "revenue", isKey: true, scorecard: true, history: 12, futureTargets: 3,
-      series: (c) => { const t = monthlyPlan(c, 980_000, 9_000); return { target: t, value: c.future ? null : Math.round(t * c.noise(0.03)) }; },
+      analytics: "revenue",
+      series: (c) => ({ target: data.budgets.get(c.period)?.revenue ?? null, value: c.future ? null : (data.kpis.get(c.period)?.revenue ?? null) }),
     },
     {
       key: "ebitda", name: "EBITDA", category: "financial", unit: "currency", frequency: "monthly", direction: "higher_is_better", tolerance: 10,
       aggregation: "flow", owner: "cfo", comparable: "ebitda", isKey: true, scorecard: true, history: 12, futureTargets: 3,
-      series: (c) => { const t = monthlyPlan(c, 165_000, 2_000); return { target: t, value: c.future ? null : Math.round(t * 0.97 * c.noise(0.06)) }; },
+      analytics: "ebitda",
+      series: (c) => ({ target: data.budgets.get(c.period)?.ebitda ?? null, value: c.future ? null : (data.kpis.get(c.period)?.ebitda ?? null) }),
     },
     {
       key: "cashbal", name: "Cash balance", category: "financial", unit: "currency", frequency: "monthly", direction: "higher_is_better", target: 1_500_000, tolerance: 15,

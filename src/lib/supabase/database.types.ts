@@ -99,14 +99,14 @@ isOneToOne: false
                   ]
                 },"actions": {
                   Row: {
-                    "acquisition_id": string | null,"company_id": string,"completed_at": string | null,"created_at": string,"created_by": string | null,"decision_id": string | null,"description": string | null,"due_date": string | null,"id": string,"integration_activity_id": string | null,"issue_id": string | null,"listening_round_id": string | null,"meeting_id": string | null,"metric_id": string | null,"owner_id": string,"quarterly_priority_id": string | null,"status": Database["public"]['Enums']["action_status"],"title": string,"updated_at": string
+                    "acquisition_id": string | null,"analytics_ref": Json | null,"company_id": string,"completed_at": string | null,"created_at": string,"created_by": string | null,"decision_id": string | null,"description": string | null,"due_date": string | null,"id": string,"integration_activity_id": string | null,"issue_id": string | null,"listening_round_id": string | null,"meeting_id": string | null,"metric_id": string | null,"owner_id": string,"quarterly_priority_id": string | null,"status": Database["public"]['Enums']["action_status"],"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "acquisition_id"?: string | null,"company_id": string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decision_id"?: string | null,"description"?: string | null,"due_date"?: string | null,"id"?: string,"integration_activity_id"?: string | null,"issue_id"?: string | null,"listening_round_id"?: string | null,"meeting_id"?: string | null,"metric_id"?: string | null,"owner_id": string,"quarterly_priority_id"?: string | null,"status"?: Database["public"]['Enums']["action_status"],"title": string,"updated_at"?: string
+                    "acquisition_id"?: string | null,"analytics_ref"?: Json | null,"company_id": string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decision_id"?: string | null,"description"?: string | null,"due_date"?: string | null,"id"?: string,"integration_activity_id"?: string | null,"issue_id"?: string | null,"listening_round_id"?: string | null,"meeting_id"?: string | null,"metric_id"?: string | null,"owner_id": string,"quarterly_priority_id"?: string | null,"status"?: Database["public"]['Enums']["action_status"],"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "acquisition_id"?: string | null,"company_id"?: string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decision_id"?: string | null,"description"?: string | null,"due_date"?: string | null,"id"?: string,"integration_activity_id"?: string | null,"issue_id"?: string | null,"listening_round_id"?: string | null,"meeting_id"?: string | null,"metric_id"?: string | null,"owner_id"?: string,"quarterly_priority_id"?: string | null,"status"?: Database["public"]['Enums']["action_status"],"title"?: string,"updated_at"?: string
+                    "acquisition_id"?: string | null,"analytics_ref"?: Json | null,"company_id"?: string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decision_id"?: string | null,"description"?: string | null,"due_date"?: string | null,"id"?: string,"integration_activity_id"?: string | null,"issue_id"?: string | null,"listening_round_id"?: string | null,"meeting_id"?: string | null,"metric_id"?: string | null,"owner_id"?: string,"quarterly_priority_id"?: string | null,"status"?: Database["public"]['Enums']["action_status"],"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -211,14 +211,14 @@ isOneToOne: false
                   ]
                 },"agent_configs": {
                   Row: {
-                    "agent_key": string,"allow_external_ai": boolean,"allowed_connections": (string)[],"approvers": NonNullable<Json>,"category_modes": NonNullable<Json>,"company_id": string,"enabled": boolean,"escalation": NonNullable<Json>,"instructions": string,"limits": NonNullable<Json>,"notifications": NonNullable<Json>,"schedules": NonNullable<Json>,"updated_at": string,"updated_by": string | null
+                    "agent_key": string,"allow_external_ai": boolean,"allowed_connections": (string)[],"approvers": NonNullable<Json>,"category_modes": NonNullable<Json>,"company_id": string,"data_domains": (string)[],"enabled": boolean,"escalation": NonNullable<Json>,"instructions": string,"limits": NonNullable<Json>,"notifications": NonNullable<Json>,"schedules": NonNullable<Json>,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "agent_key": string,"allow_external_ai"?: boolean,"allowed_connections"?: (string)[],"approvers"?: NonNullable<Json>,"category_modes"?: NonNullable<Json>,"company_id": string,"enabled"?: boolean,"escalation"?: NonNullable<Json>,"instructions"?: string,"limits"?: NonNullable<Json>,"notifications"?: NonNullable<Json>,"schedules"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null
+                    "agent_key": string,"allow_external_ai"?: boolean,"allowed_connections"?: (string)[],"approvers"?: NonNullable<Json>,"category_modes"?: NonNullable<Json>,"company_id": string,"data_domains"?: (string)[],"enabled"?: boolean,"escalation"?: NonNullable<Json>,"instructions"?: string,"limits"?: NonNullable<Json>,"notifications"?: NonNullable<Json>,"schedules"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "agent_key"?: string,"allow_external_ai"?: boolean,"allowed_connections"?: (string)[],"approvers"?: NonNullable<Json>,"category_modes"?: NonNullable<Json>,"company_id"?: string,"enabled"?: boolean,"escalation"?: NonNullable<Json>,"instructions"?: string,"limits"?: NonNullable<Json>,"notifications"?: NonNullable<Json>,"schedules"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null
+                    "agent_key"?: string,"allow_external_ai"?: boolean,"allowed_connections"?: (string)[],"approvers"?: NonNullable<Json>,"category_modes"?: NonNullable<Json>,"company_id"?: string,"data_domains"?: (string)[],"enabled"?: boolean,"escalation"?: NonNullable<Json>,"instructions"?: string,"limits"?: NonNullable<Json>,"notifications"?: NonNullable<Json>,"schedules"?: NonNullable<Json>,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -441,6 +441,276 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"an_datasets": {
+                  Row: {
+                    "calc_version": string,"company_id": string,"coverage_end": string | null,"coverage_start": string | null,"domain": string,"key": string,"label": string,"model": string,"refreshed_at": string,"row_count": number,"source_system": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "calc_version": string,"company_id": string,"coverage_end"?: string | null,"coverage_start"?: string | null,"domain": string,"key": string,"label": string,"model": string,"refreshed_at": string,"row_count"?: number,"source_system": string,"status"?: string
+                  }
+                  Update: {
+                    "calc_version"?: string,"company_id"?: string,"coverage_end"?: string | null,"coverage_start"?: string | null,"domain"?: string,"key"?: string,"label"?: string,"model"?: string,"refreshed_at"?: string,"row_count"?: number,"source_system"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_datasets_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_dimensions": {
+                  Row: {
+                    "company_id": string,"domain": string,"key": string,"label": string,"sort_order": number,"values": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"domain": string,"key": string,"label": string,"sort_order"?: number,"values"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "company_id"?: string,"domain"?: string,"key"?: string,"label"?: string,"sort_order"?: number,"values"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_dimensions_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_dq_results": {
+                  Row: {
+                    "affected_count": number,"amount": number | null,"check_key": string,"company_id": string,"detected_at": string,"domain": string,"id": string,"month": string | null,"owner_function": string,"remediation": string,"sample": NonNullable<Json>,"severity": string,"source_system": string,"status": string,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "affected_count"?: number,"amount"?: number | null,"check_key": string,"company_id": string,"detected_at"?: string,"domain": string,"id"?: string,"month"?: string | null,"owner_function": string,"remediation": string,"sample"?: NonNullable<Json>,"severity": string,"source_system": string,"status": string,"title": string
+                  }
+                  Update: {
+                    "affected_count"?: number,"amount"?: number | null,"check_key"?: string,"company_id"?: string,"detected_at"?: string,"domain"?: string,"id"?: string,"month"?: string | null,"owner_function"?: string,"remediation"?: string,"sample"?: NonNullable<Json>,"severity"?: string,"source_system"?: string,"status"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_dq_results_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_exports": {
+                  Row: {
+                    "company_id": string,"created_at": string,"dataset": string,"domain": string,"id": number,"params": string,"row_count": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"dataset": string,"domain": string,"id"?: never,"params"?: string,"row_count": number,"user_id"?: string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"dataset"?: string,"domain"?: string,"id"?: never,"params"?: string,"row_count"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_exports_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "an_exports_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_grants": {
+                  Row: {
+                    "company_id": string,"created_at": string,"domain": string,"granted_by": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"domain": string,"granted_by"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"domain"?: string,"granted_by"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_grants_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "an_grants_granted_by_fkey"
+      columns: ["granted_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "an_grants_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_metric_definitions": {
+                  Row: {
+                    "change_note": string,"changed_by": string | null,"company_id": string,"comparability_group": string | null,"created_at": string,"definition": string,"direction": string,"domain": string,"effective_from": string,"formula": string,"grain": string,"key": string,"name": string,"periods": (string)[],"policy": NonNullable<Json>,"source_dataset": string,"status": string,"unit": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "change_note"?: string,"changed_by"?: string | null,"company_id": string,"comparability_group"?: string | null,"created_at"?: string,"definition": string,"direction"?: string,"domain": string,"effective_from"?: string,"formula": string,"grain": string,"key": string,"name": string,"periods"?: (string)[],"policy"?: NonNullable<Json>,"source_dataset": string,"status"?: string,"unit": string,"version"?: number
+                  }
+                  Update: {
+                    "change_note"?: string,"changed_by"?: string | null,"company_id"?: string,"comparability_group"?: string | null,"created_at"?: string,"definition"?: string,"direction"?: string,"domain"?: string,"effective_from"?: string,"formula"?: string,"grain"?: string,"key"?: string,"name"?: string,"periods"?: (string)[],"policy"?: NonNullable<Json>,"source_dataset"?: string,"status"?: string,"unit"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_metric_definitions_changed_by_fkey"
+      columns: ["changed_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "an_metric_definitions_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_period_closes": {
+                  Row: {
+                    "calc_version": string,"closed_at": string,"company_id": string,"domain": string,"metrics": NonNullable<Json>,"month": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "calc_version": string,"closed_at"?: string,"company_id": string,"domain": string,"metrics": NonNullable<Json>,"month": string,"version"?: number
+                  }
+                  Update: {
+                    "calc_version"?: string,"closed_at"?: string,"company_id"?: string,"domain"?: string,"metrics"?: NonNullable<Json>,"month"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_period_closes_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_period_status": {
+                  Row: {
+                    "company_id": string,"domain": string,"month": string,"reason": string | null,"status": string,"validated_at": string | null,"validated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"domain": string,"month": string,"reason"?: string | null,"status": string,"validated_at"?: string | null,"validated_by"?: string | null
+                  }
+                  Update: {
+                    "company_id"?: string,"domain"?: string,"month"?: string,"reason"?: string | null,"status"?: string,"validated_at"?: string | null,"validated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_period_status_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_restatements": {
+                  Row: {
+                    "approved_by": string,"company_id": string,"current": NonNullable<Json>,"domain": string,"id": string,"month": string | null,"previous": NonNullable<Json>,"reason": string,"restated_at": string,"subject": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "approved_by": string,"company_id": string,"current"?: NonNullable<Json>,"domain": string,"id"?: string,"month"?: string | null,"previous"?: NonNullable<Json>,"reason": string,"restated_at"?: string,"subject": string
+                  }
+                  Update: {
+                    "approved_by"?: string,"company_id"?: string,"current"?: NonNullable<Json>,"domain"?: string,"id"?: string,"month"?: string | null,"previous"?: NonNullable<Json>,"reason"?: string,"restated_at"?: string,"subject"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_restatements_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_saved_views": {
+                  Row: {
+                    "company_id": string,"created_at": string,"id": string,"module": string,"name": string,"params": string,"path": string,"shared": boolean,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"id"?: string,"module": string,"name": string,"params"?: string,"path": string,"shared"?: boolean,"user_id"?: string
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"id"?: string,"module"?: string,"name"?: string,"params"?: string,"path"?: string,"shared"?: boolean,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_saved_views_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "an_saved_views_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_sources": {
+                  Row: {
+                    "adapter": string,"business_model": string,"company_id": string,"config": NonNullable<Json>,"connected_at": string,"currency": string,"is_synthetic": boolean,"label": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "adapter": string,"business_model"?: string,"company_id": string,"config"?: NonNullable<Json>,"connected_at"?: string,"currency"?: string,"is_synthetic": boolean,"label": string
+                  }
+                  Update: {
+                    "adapter"?: string,"business_model"?: string,"company_id"?: string,"config"?: NonNullable<Json>,"connected_at"?: string,"currency"?: string,"is_synthetic"?: boolean,"label"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_sources_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: true
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"an_targets": {
+                  Row: {
+                    "company_id": string,"domain": string,"metric_key": string,"month": string,"scenario": string,"value": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"domain": string,"metric_key": string,"month": string,"scenario": string,"value": number
+                  }
+                  Update: {
+                    "company_id"?: string,"domain"?: string,"metric_key"?: string,"month"?: string,"scenario"?: string,"value"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "an_targets_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"annual_goals": {
                   Row: {
                     "baseline_value": number | null,"company_id": string,"created_at": string,"current_value": number | null,"description": string | null,"due_date": string | null,"fiscal_year": number,"id": string,"measurable_outcome": string | null,"owner_id": string,"progress": number,"sort_order": number,"start_date": string | null,"status": Database["public"]['Enums']["rag_status"],"target_value": number | null,"title": string,"unit": Database["public"]['Enums']["metric_unit"] | null,"updated_at": string,"winning_move_id": string
@@ -517,6 +787,162 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
+    }
+                  ]
+                },"ci_accounts": {
+                  Row: {
+                    "behaviour": string | null,"code": string,"company_id": string,"controllable": boolean | null,"name": string,"pl_line": string,"section": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "behaviour"?: string | null,"code": string,"company_id": string,"controllable"?: boolean | null,"name": string,"pl_line": string,"section": string
+                  }
+                  Update: {
+                    "behaviour"?: string | null,"code"?: string,"company_id"?: string,"controllable"?: boolean | null,"name"?: string,"pl_line"?: string,"section"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ci_accounts_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ci_cost_centres": {
+                  Row: {
+                    "business_unit": string | null,"code": string,"company_id": string,"department": string,"function": string,"location": string | null,"name": string,"owner_crew_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "business_unit"?: string | null,"code": string,"company_id": string,"department": string,"function": string,"location"?: string | null,"name": string,"owner_crew_id"?: string | null
+                  }
+                  Update: {
+                    "business_unit"?: string | null,"code"?: string,"company_id"?: string,"department"?: string,"function"?: string,"location"?: string | null,"name"?: string,"owner_crew_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ci_cost_centres_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ci_cost_centres_company_id_owner_crew_id_fkey"
+      columns: ["company_id","owner_crew_id"]
+isOneToOne: false
+      referencedRelation: "crew_members"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"ci_ledger": {
+                  Row: {
+                    "account_code": string,"amount": number,"business_unit": string | null,"company_id": string,"cost_centre_code": string,"id": number,"month": string,"origin": string,"product_key": string | null,"scenario": string,"supplier_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_code": string,"amount": number,"business_unit"?: string | null,"company_id": string,"cost_centre_code": string,"id"?: never,"month": string,"origin"?: string,"product_key"?: string | null,"scenario": string,"supplier_id"?: string | null
+                  }
+                  Update: {
+                    "account_code"?: string,"amount"?: number,"business_unit"?: string | null,"company_id"?: string,"cost_centre_code"?: string,"id"?: never,"month"?: string,"origin"?: string,"product_key"?: string | null,"scenario"?: string,"supplier_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ci_ledger_company_id_account_code_fkey"
+      columns: ["company_id","account_code"]
+isOneToOne: false
+      referencedRelation: "ci_accounts"
+      referencedColumns: ["company_id","code"]
+    },{
+      foreignKeyName: "ci_ledger_company_id_cost_centre_code_fkey"
+      columns: ["company_id","cost_centre_code"]
+isOneToOne: false
+      referencedRelation: "ci_cost_centres"
+      referencedColumns: ["company_id","code"]
+    },{
+      foreignKeyName: "ci_ledger_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ci_ledger_company_id_supplier_id_fkey"
+      columns: ["company_id","supplier_id"]
+isOneToOne: false
+      referencedRelation: "ci_suppliers"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"ci_people": {
+                  Row: {
+                    "company_id": string,"department": string,"employment_cost": number,"fte": number,"headcount": number,"hires": number,"leavers": number,"month": string,"open_roles": number,"scenario": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"department": string,"employment_cost": number,"fte": number,"headcount": number,"hires"?: number,"leavers"?: number,"month": string,"open_roles"?: number,"scenario": string
+                  }
+                  Update: {
+                    "company_id"?: string,"department"?: string,"employment_cost"?: number,"fte"?: number,"headcount"?: number,"hires"?: number,"leavers"?: number,"month"?: string,"open_roles"?: number,"scenario"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ci_people_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ci_suppliers": {
+                  Row: {
+                    "category": string,"company_id": string,"contract_end": string | null,"id": string,"name": string,"origin": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "category": string,"company_id": string,"contract_end"?: string | null,"id"?: string,"name": string,"origin"?: string
+                  }
+                  Update: {
+                    "category"?: string,"company_id"?: string,"contract_end"?: string | null,"id"?: string,"name"?: string,"origin"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ci_suppliers_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ci_transactions": {
+                  Row: {
+                    "account_code": string,"amount": number,"company_id": string,"cost_centre_code": string,"description": string,"id": string,"month": string,"posted_on": string,"reference": string,"source_system": string,"supplier_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_code": string,"amount": number,"company_id": string,"cost_centre_code": string,"description": string,"id"?: string,"month": string,"posted_on": string,"reference": string,"source_system": string,"supplier_id"?: string | null
+                  }
+                  Update: {
+                    "account_code"?: string,"amount"?: number,"company_id"?: string,"cost_centre_code"?: string,"description"?: string,"id"?: string,"month"?: string,"posted_on"?: string,"reference"?: string,"source_system"?: string,"supplier_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ci_transactions_company_id_account_code_fkey"
+      columns: ["company_id","account_code"]
+isOneToOne: false
+      referencedRelation: "ci_accounts"
+      referencedColumns: ["company_id","code"]
+    },{
+      foreignKeyName: "ci_transactions_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ci_transactions_company_id_supplier_id_fkey"
+      columns: ["company_id","supplier_id"]
+isOneToOne: false
+      referencedRelation: "ci_suppliers"
+      referencedColumns: ["company_id","id"]
     }
                   ]
                 },"comments": {
@@ -1177,14 +1603,14 @@ isOneToOne: true
                   ]
                 },"issues": {
                   Row: {
-                    "acquisition_id": string | null,"annual_goal_id": string | null,"company_id": string,"created_at": string,"description": string | null,"escalated_to_omni": boolean,"id": string,"metric_id": string | null,"owner_id": string,"priority": Database["public"]['Enums']["issue_priority"],"quarterly_priority_id": string | null,"raised_by_id": string | null,"raised_in_meeting_id": string | null,"resolution": string | null,"resolved_at": string | null,"resolved_in_meeting_id": string | null,"status": Database["public"]['Enums']["issue_status"],"title": string,"updated_at": string
+                    "acquisition_id": string | null,"analytics_ref": Json | null,"annual_goal_id": string | null,"company_id": string,"created_at": string,"description": string | null,"escalated_to_omni": boolean,"id": string,"metric_id": string | null,"owner_id": string,"priority": Database["public"]['Enums']["issue_priority"],"quarterly_priority_id": string | null,"raised_by_id": string | null,"raised_in_meeting_id": string | null,"resolution": string | null,"resolved_at": string | null,"resolved_in_meeting_id": string | null,"status": Database["public"]['Enums']["issue_status"],"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "acquisition_id"?: string | null,"annual_goal_id"?: string | null,"company_id": string,"created_at"?: string,"description"?: string | null,"escalated_to_omni"?: boolean,"id"?: string,"metric_id"?: string | null,"owner_id": string,"priority"?: Database["public"]['Enums']["issue_priority"],"quarterly_priority_id"?: string | null,"raised_by_id"?: string | null,"raised_in_meeting_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_in_meeting_id"?: string | null,"status"?: Database["public"]['Enums']["issue_status"],"title": string,"updated_at"?: string
+                    "acquisition_id"?: string | null,"analytics_ref"?: Json | null,"annual_goal_id"?: string | null,"company_id": string,"created_at"?: string,"description"?: string | null,"escalated_to_omni"?: boolean,"id"?: string,"metric_id"?: string | null,"owner_id": string,"priority"?: Database["public"]['Enums']["issue_priority"],"quarterly_priority_id"?: string | null,"raised_by_id"?: string | null,"raised_in_meeting_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_in_meeting_id"?: string | null,"status"?: Database["public"]['Enums']["issue_status"],"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "acquisition_id"?: string | null,"annual_goal_id"?: string | null,"company_id"?: string,"created_at"?: string,"description"?: string | null,"escalated_to_omni"?: boolean,"id"?: string,"metric_id"?: string | null,"owner_id"?: string,"priority"?: Database["public"]['Enums']["issue_priority"],"quarterly_priority_id"?: string | null,"raised_by_id"?: string | null,"raised_in_meeting_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_in_meeting_id"?: string | null,"status"?: Database["public"]['Enums']["issue_status"],"title"?: string,"updated_at"?: string
+                    "acquisition_id"?: string | null,"analytics_ref"?: Json | null,"annual_goal_id"?: string | null,"company_id"?: string,"created_at"?: string,"description"?: string | null,"escalated_to_omni"?: boolean,"id"?: string,"metric_id"?: string | null,"owner_id"?: string,"priority"?: Database["public"]['Enums']["issue_priority"],"quarterly_priority_id"?: string | null,"raised_by_id"?: string | null,"raised_in_meeting_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_in_meeting_id"?: string | null,"status"?: Database["public"]['Enums']["issue_status"],"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1573,14 +1999,14 @@ isOneToOne: false
                   ]
                 },"metrics": {
                   Row: {
-                    "aggregation": string,"archived": boolean,"category": Database["public"]['Enums']["metric_category"],"company_id": string,"comparable_key": string | null,"created_at": string,"decimals": number,"description": string | null,"direction": Database["public"]['Enums']["metric_direction"],"frequency": Database["public"]['Enums']["metric_frequency"],"id": string,"in_weekly_scorecard": boolean,"is_key": boolean,"name": string,"owner_id": string,"sort_order": number,"source": string,"target_max": number | null,"target_min": number | null,"target_value": number | null,"tolerance_pct": number,"unit": Database["public"]['Enums']["metric_unit"],"updated_at": string
+                    "aggregation": string,"analytics_metric_key": string | null,"archived": boolean,"category": Database["public"]['Enums']["metric_category"],"company_id": string,"comparable_key": string | null,"created_at": string,"decimals": number,"description": string | null,"direction": Database["public"]['Enums']["metric_direction"],"frequency": Database["public"]['Enums']["metric_frequency"],"id": string,"in_weekly_scorecard": boolean,"is_key": boolean,"name": string,"owner_id": string,"sort_order": number,"source": string,"target_max": number | null,"target_min": number | null,"target_value": number | null,"tolerance_pct": number,"unit": Database["public"]['Enums']["metric_unit"],"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "aggregation"?: string,"archived"?: boolean,"category": Database["public"]['Enums']["metric_category"],"company_id": string,"comparable_key"?: string | null,"created_at"?: string,"decimals"?: number,"description"?: string | null,"direction"?: Database["public"]['Enums']["metric_direction"],"frequency"?: Database["public"]['Enums']["metric_frequency"],"id"?: string,"in_weekly_scorecard"?: boolean,"is_key"?: boolean,"name": string,"owner_id": string,"sort_order"?: number,"source"?: string,"target_max"?: number | null,"target_min"?: number | null,"target_value"?: number | null,"tolerance_pct"?: number,"unit"?: Database["public"]['Enums']["metric_unit"],"updated_at"?: string
+                    "aggregation"?: string,"analytics_metric_key"?: string | null,"archived"?: boolean,"category": Database["public"]['Enums']["metric_category"],"company_id": string,"comparable_key"?: string | null,"created_at"?: string,"decimals"?: number,"description"?: string | null,"direction"?: Database["public"]['Enums']["metric_direction"],"frequency"?: Database["public"]['Enums']["metric_frequency"],"id"?: string,"in_weekly_scorecard"?: boolean,"is_key"?: boolean,"name": string,"owner_id": string,"sort_order"?: number,"source"?: string,"target_max"?: number | null,"target_min"?: number | null,"target_value"?: number | null,"tolerance_pct"?: number,"unit"?: Database["public"]['Enums']["metric_unit"],"updated_at"?: string
                   }
                   Update: {
-                    "aggregation"?: string,"archived"?: boolean,"category"?: Database["public"]['Enums']["metric_category"],"company_id"?: string,"comparable_key"?: string | null,"created_at"?: string,"decimals"?: number,"description"?: string | null,"direction"?: Database["public"]['Enums']["metric_direction"],"frequency"?: Database["public"]['Enums']["metric_frequency"],"id"?: string,"in_weekly_scorecard"?: boolean,"is_key"?: boolean,"name"?: string,"owner_id"?: string,"sort_order"?: number,"source"?: string,"target_max"?: number | null,"target_min"?: number | null,"target_value"?: number | null,"tolerance_pct"?: number,"unit"?: Database["public"]['Enums']["metric_unit"],"updated_at"?: string
+                    "aggregation"?: string,"analytics_metric_key"?: string | null,"archived"?: boolean,"category"?: Database["public"]['Enums']["metric_category"],"company_id"?: string,"comparable_key"?: string | null,"created_at"?: string,"decimals"?: number,"description"?: string | null,"direction"?: Database["public"]['Enums']["metric_direction"],"frequency"?: Database["public"]['Enums']["metric_frequency"],"id"?: string,"in_weekly_scorecard"?: boolean,"is_key"?: boolean,"name"?: string,"owner_id"?: string,"sort_order"?: number,"source"?: string,"target_max"?: number | null,"target_min"?: number | null,"target_value"?: number | null,"tolerance_pct"?: number,"unit"?: Database["public"]['Enums']["metric_unit"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1969,6 +2395,152 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"ri_arr_monthly": {
+                  Row: {
+                    "arr": number,"change_reason": string | null,"company_id": string,"currency": string,"customer_id": string,"month": string,"product_key": string,"source_ref": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "arr": number,"change_reason"?: string | null,"company_id": string,"currency"?: string,"customer_id": string,"month": string,"product_key": string,"source_ref"?: string | null
+                  }
+                  Update: {
+                    "arr"?: number,"change_reason"?: string | null,"company_id"?: string,"currency"?: string,"customer_id"?: string,"month"?: string,"product_key"?: string,"source_ref"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ri_arr_monthly_company_id_customer_id_fkey"
+      columns: ["company_id","customer_id"]
+isOneToOne: false
+      referencedRelation: "ri_customers"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "ri_arr_monthly_company_id_product_key_fkey"
+      columns: ["company_id","product_key"]
+isOneToOne: false
+      referencedRelation: "ri_products"
+      referencedColumns: ["company_id","key"]
+    }
+                  ]
+                },"ri_cohorts": {
+                  Row: {
+                    "assigned_at": string,"business_unit": string | null,"cohort_month": string,"company_id": string,"contract_type": string | null,"customer_id": string,"geography": string | null,"origin": string,"primary_product": string | null,"restatement_id": string | null,"sector": string | null,"segment": string | null,"size_band": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "assigned_at"?: string,"business_unit"?: string | null,"cohort_month": string,"company_id": string,"contract_type"?: string | null,"customer_id": string,"geography"?: string | null,"origin": string,"primary_product"?: string | null,"restatement_id"?: string | null,"sector"?: string | null,"segment"?: string | null,"size_band"?: string | null
+                  }
+                  Update: {
+                    "assigned_at"?: string,"business_unit"?: string | null,"cohort_month"?: string,"company_id"?: string,"contract_type"?: string | null,"customer_id"?: string,"geography"?: string | null,"origin"?: string,"primary_product"?: string | null,"restatement_id"?: string | null,"sector"?: string | null,"segment"?: string | null,"size_band"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ri_cohorts_company_id_customer_id_fkey"
+      columns: ["company_id","customer_id"]
+isOneToOne: true
+      referencedRelation: "ri_customers"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"ri_contracts": {
+                  Row: {
+                    "annual_value": number | null,"company_id": string,"contract_ref": string,"customer_id": string,"end_date": string | null,"id": string,"product_key": string,"renewal_date": string | null,"source_system": string,"start_date": string | null,"status": string,"term_months": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "annual_value"?: number | null,"company_id": string,"contract_ref": string,"customer_id": string,"end_date"?: string | null,"id"?: string,"product_key": string,"renewal_date"?: string | null,"source_system": string,"start_date"?: string | null,"status": string,"term_months"?: number | null
+                  }
+                  Update: {
+                    "annual_value"?: number | null,"company_id"?: string,"contract_ref"?: string,"customer_id"?: string,"end_date"?: string | null,"id"?: string,"product_key"?: string,"renewal_date"?: string | null,"source_system"?: string,"start_date"?: string | null,"status"?: string,"term_months"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ri_contracts_company_id_customer_id_fkey"
+      columns: ["company_id","customer_id"]
+isOneToOne: false
+      referencedRelation: "ri_customers"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"ri_customers": {
+                  Row: {
+                    "account_owner": string | null,"acquired_on": string | null,"attributes": NonNullable<Json>,"business_unit": string | null,"company_id": string,"contract_type": string | null,"crm_id": string | null,"disposed_on": string | null,"external_id": string,"first_arr_month": string | null,"geography": string | null,"id": string,"name": string,"origin": string,"origin_label": string | null,"sector": string | null,"segment": string | null,"size_band": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_owner"?: string | null,"acquired_on"?: string | null,"attributes"?: NonNullable<Json>,"business_unit"?: string | null,"company_id": string,"contract_type"?: string | null,"crm_id"?: string | null,"disposed_on"?: string | null,"external_id": string,"first_arr_month"?: string | null,"geography"?: string | null,"id"?: string,"name": string,"origin"?: string,"origin_label"?: string | null,"sector"?: string | null,"segment"?: string | null,"size_band"?: string | null
+                  }
+                  Update: {
+                    "account_owner"?: string | null,"acquired_on"?: string | null,"attributes"?: NonNullable<Json>,"business_unit"?: string | null,"company_id"?: string,"contract_type"?: string | null,"crm_id"?: string | null,"disposed_on"?: string | null,"external_id"?: string,"first_arr_month"?: string | null,"geography"?: string | null,"id"?: string,"name"?: string,"origin"?: string,"origin_label"?: string | null,"sector"?: string | null,"segment"?: string | null,"size_band"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ri_customers_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ri_finance_recon": {
+                  Row: {
+                    "company_id": string,"contractual_arr": number,"explained_difference": number,"explanation": string | null,"invoiced_recurring_annualised": number | null,"month": string,"recognised_recurring_revenue": number | null,"recognised_total_revenue": number | null,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"contractual_arr": number,"explained_difference"?: number,"explanation"?: string | null,"invoiced_recurring_annualised"?: number | null,"month": string,"recognised_recurring_revenue"?: number | null,"recognised_total_revenue"?: number | null,"status": string
+                  }
+                  Update: {
+                    "company_id"?: string,"contractual_arr"?: number,"explained_difference"?: number,"explanation"?: string | null,"invoiced_recurring_annualised"?: number | null,"month"?: string,"recognised_recurring_revenue"?: number | null,"recognised_total_revenue"?: number | null,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ri_finance_recon_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ri_movements": {
+                  Row: {
+                    "amount": number,"calc_version": string,"company_id": string,"customer_id": string,"month": string,"product_key": string,"rule_key": string,"type": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"calc_version": string,"company_id": string,"customer_id": string,"month": string,"product_key": string,"rule_key": string,"type": string
+                  }
+                  Update: {
+                    "amount"?: number,"calc_version"?: string,"company_id"?: string,"customer_id"?: string,"month"?: string,"product_key"?: string,"rule_key"?: string,"type"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ri_movements_company_id_customer_id_fkey"
+      columns: ["company_id","customer_id"]
+isOneToOne: false
+      referencedRelation: "ri_customers"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"ri_products": {
+                  Row: {
+                    "business_unit": string,"company_id": string,"family": string | null,"key": string,"name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "business_unit": string,"company_id": string,"family"?: string | null,"key": string,"name": string
+                  }
+                  Update: {
+                    "business_unit"?: string,"company_id"?: string,"family"?: string | null,"key"?: string,"name"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ri_products_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"success_conditions": {
                   Row: {
                     "company_id": string,"created_at": string,"description": string | null,"id": string,"owner_id": string | null,"sort_order": number,"status": Database["public"]['Enums']["rag_status"],"title": string,"updated_at": string
@@ -2112,6 +2684,18 @@ isOneToOne: false
 "agent_set_ma_stage":
 { Args: { "p_company": string,"p_stage": string,"p_target": string }; Returns: undefined
                            },
+"an_arr":
+{ Args: { "f": Json,"k": string }; Returns: (string)[]
+                           },
+"an_my_domains":
+{ Args: { "p_company": string }; Returns: (string)[]
+                           },
+"an_new_definition_version":
+{ Args: { "p_company": string,"p_definition": string,"p_key": string,"p_note": string,"p_policy": Json }; Returns: number
+                           },
+"an_restate_cohort":
+{ Args: { "p_cohort_month": string,"p_company": string,"p_customer": string,"p_reason": string }; Returns: string
+                           },
 "approve_integration_plan":
 { Args: { "p_note"?: string,"p_plan": string }; Returns: undefined
                            },
@@ -2120,6 +2704,11 @@ isOneToOne: false
                            },
 "approve_quarterly_reset":
 { Args: { "p_reset_id": string,"p_snapshot": Json }; Returns: undefined
+                           },
+"ci_ledger_totals":
+{ Args: { "p_company": string,"p_filters"?: Json,"p_from": string,"p_group"?: string,"p_scenarios": (string)[],"p_to": string }; Returns: {
+              "amount": number,"grp": string,"line": string,"month": string,"scenario": string,"section": string
+            }[]
                            },
 "claim_agent_runs":
 { Args: { "p_companies"?: (string)[],"p_lease_seconds"?: number,"p_limit": number,"p_worker": string }; Returns: {
@@ -2150,6 +2739,42 @@ isOneToOne: false
       } },
 "connection_ciphertext":
 { Args: { "p_connection": string }; Returns: string
+                           },
+"ri_arr_at":
+{ Args: { "p_company": string,"p_filters"?: Json,"p_group"?: string,"p_months": (string)[],"p_ref"?: string }; Returns: {
+              "arr": number,"customers": number,"grp": string,"month": string
+            }[]
+                           },
+"ri_cohort_matrix":
+{ Args: { "p_age"?: string,"p_cohort"?: string,"p_company": string,"p_dimension"?: string,"p_filters"?: Json,"p_last": string }; Returns: {
+              "active": number,"age": number,"arr": number,"cohort": string,"initial_arr": number,"members": number
+            }[]
+                           },
+"ri_customer_list":
+{ Args: { "p_company": string,"p_compare": string,"p_filters"?: Json,"p_limit"?: number,"p_month": string,"p_offset"?: number,"p_search"?: string,"p_sort"?: string }; Returns: {
+              "account_owner": string,"arr": number,"arr_compare": number,"business_unit": string,"crm_id": string,"id": string,"name": string,"origin": string,"sector": string,"segment": string,"total": number
+            }[]
+                           },
+"ri_group_key":
+{ Args: { "c": Omit<Database["public"]['Tables']["ri_customers"]['Row'], Database["public"]['Tables']["ri_customers"]['ComputedFields']>,"g": string }; Returns: string
+                           },
+"ri_match":
+{ Args: { "c": Omit<Database["public"]['Tables']["ri_customers"]['Row'], Database["public"]['Tables']["ri_customers"]['ComputedFields']>,"f": Json,"p_ref": string }; Returns: boolean
+                           },
+"ri_movement_customers":
+{ Args: { "p_company": string,"p_filters"?: Json,"p_from": string,"p_limit"?: number,"p_offset"?: number,"p_to": string,"p_type": string }; Returns: {
+              "account_owner": string,"amount": number,"business_unit": string,"id": string,"months": number,"name": string,"sector": string,"segment": string,"total": number,"total_amount": number
+            }[]
+                           },
+"ri_movement_totals":
+{ Args: { "p_company": string,"p_filters"?: Json,"p_from": string,"p_group"?: string,"p_to": string }; Returns: {
+              "amount": number,"customers": number,"grp": string,"month": string,"type": string
+            }[]
+                           },
+"ri_retention":
+{ Args: { "p_acquired_wait"?: number,"p_company": string,"p_end": string,"p_filters"?: Json,"p_group"?: string,"p_start": string }; Returns: {
+              "adjustment": number,"churn": number,"contraction": number,"end_arr": number,"end_logos": number,"expansion": number,"grp": string,"migration": number,"opening_arr": number,"opening_logos": number,"reactivation": number,"transfer": number
+            }[]
                            }
           }
           Enums: {
