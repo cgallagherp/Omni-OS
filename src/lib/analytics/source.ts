@@ -45,6 +45,8 @@ export interface AnalyticsSource {
   customers(o: { month: string; compare: string; filters?: Filters; search?: string | null; sort?: "arr" | "change" | "name"; limit?: number; offset?: number }): Promise<Paged<CustomerRow>>;
   movementCustomers(o: { from: string; to: string; type: MovementType; filters?: Filters; limit?: number; offset?: number }): Promise<Paged<MovementCustomerRow>>;
   customer(id: string): Promise<CustomerDetail | null>;
+  /** Members of one cohort with their ARR at the cohort start, at a given age and at `end`. */
+  cohortMembers(o: { cohort: string; grain: "month" | "quarter" | "year"; dimension?: string | null; stepMonths: number; age: number; end: string; limit?: number; offset?: number }): Promise<Paged<{ id: string; name: string; sector: string | null; cohort_month: string; initial: number; atAge: number | null; current: number }>>;
   reconciliation(): Promise<Database["public"]["Tables"]["ri_finance_recon"]["Row"][]>;
   dataQuality(domain?: "revenue" | "cost" | "people"): Promise<DqRow[]>;
   restatements(): Promise<Database["public"]["Tables"]["an_restatements"]["Row"][]>;

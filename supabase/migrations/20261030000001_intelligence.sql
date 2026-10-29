@@ -574,7 +574,9 @@ create trigger audit after insert or update or delete on public.an_grants for ea
 create trigger audit after insert or update or delete on public.an_metric_definitions for each row execute function app.audit();
 
 -- ---------------------------------------------------------------------------
--- Governed query interface (security invoker: RLS and domain checks apply).
+-- Governed query interface. Each function authorises the caller once for the company and
+-- data domain (app.can_read_domain), then reads as definer: per-row RLS over tens of
+-- thousands of ARR rows would be needlessly slow. Without access they return nothing.
 -- In production the equivalent queries run against the dbt marts; the application
 -- consumes the same result shapes either way.
 -- ---------------------------------------------------------------------------
@@ -618,14 +620,14 @@ $$;
 -- contraction and product migrations are netted per customer and month.
 create or replace function public.ri_movement_totals(p_company uuid, p_from date, p_to date, p_filters jsonb default '{}', p_group text default null)
 returns table (grp text, month date, type text, amount numeric, customers bigint)
-language sql stable set search_path = public as $$
+language sql stable security definer set search_path = public as $$
   with cfg as (select (p_group = 'product' or p_filters ? 'product') as pg, public.an_arr(p_filters, 'product') as prods),
   base as (
     select case when p_group = 'product' then m.product_key else public.ri_group_key(c, p_group) end as grp,
            m.month, m.customer_id, m.type, m.amount
     from public.ri_movements m
     join public.ri_customers c on c.company_id = m.company_id and c.id = m.customer_id, cfg
-    where m.company_id = p_company and m.month > p_from and m.month <= p_to
+    where m.company_id = p_company and m.month > p_from and m.month <= p_to and (select app.can_read_domain(p_company, 'revenue'))
       and public.ri_match(c, p_filters, p_from)
       and (cfg.prods is null or m.product_key = any (cfg.prods))
   ),
@@ -643,12 +645,12 @@ $$;
 
 create or replace function public.ri_arr_at(p_company uuid, p_months date[], p_filters jsonb default '{}', p_group text default null, p_ref date default null)
 returns table (grp text, month date, arr numeric, customers bigint)
-language sql stable set search_path = public as $$
+language sql stable security definer set search_path = public as $$
   select case when p_group = 'product' then s.product_key else public.ri_group_key(c, p_group) end, s.month, sum(s.arr),
          count(distinct s.customer_id) filter (where s.arr > 0)
   from public.ri_arr_monthly s
   join public.ri_customers c on c.company_id = s.company_id and c.id = s.customer_id
-  where s.company_id = p_company and s.month = any (p_months)
+  where s.company_id = p_company and s.month = any (p_months) and (select app.can_read_domain(p_company, 'revenue'))
     and public.ri_match(c, p_filters, coalesce(p_ref, p_months[1]))
     and (not p_filters ? 'product' or s.product_key = any (public.an_arr(p_filters, 'product')))
   group by 1, 2;
@@ -661,11 +663,11 @@ create or replace function public.ri_retention(p_company uuid, p_start date, p_e
                                                p_acquired_wait int default 12)
 returns table (grp text, opening_arr numeric, opening_logos bigint, expansion numeric, contraction numeric, churn numeric, reactivation numeric,
                transfer numeric, migration numeric, adjustment numeric, end_arr numeric, end_logos bigint)
-language sql stable set search_path = public as $$
+language sql stable security definer set search_path = public as $$
   with cfg as (select (p_group = 'product' or p_filters ? 'product') as pg, public.an_arr(p_filters, 'product') as prods),
   cust as (
     select c.id, public.ri_group_key(c, p_group) as g from public.ri_customers c
-    where c.company_id = p_company and public.ri_match(c, p_filters, p_start)
+    where c.company_id = p_company and (select app.can_read_domain(p_company, 'revenue')) and public.ri_match(c, p_filters, p_start)
       and (c.acquired_on is null or c.acquired_on <= (p_start - make_interval(months => p_acquired_wait))::date)
       and not (c.disposed_on is not null and c.disposed_on > p_start and c.disposed_on <= p_end)
   ),
@@ -713,7 +715,7 @@ $$;
 create or replace function public.ri_cohort_matrix(p_company uuid, p_last date, p_cohort text default 'quarter', p_dimension text default null,
                                                    p_filters jsonb default '{}', p_age text default 'quarter')
 returns table (cohort text, age int, members bigint, initial_arr numeric, arr numeric, active bigint)
-language sql stable set search_path = public as $$
+language sql stable security definer set search_path = public as $$
   with step as (select case p_age when 'month' then 1 when 'year' then 12 else 3 end as s),
   mem as (
     select k.customer_id, k.cohort_month,
@@ -731,7 +733,7 @@ language sql stable set search_path = public as $$
              else to_char(k.cohort_month, 'YYYY') || '-Q' || extract(quarter from k.cohort_month)::text
            end as ck
     from public.ri_cohorts k
-    where k.company_id = p_company and k.cohort_month <= p_last
+    where k.company_id = p_company and k.cohort_month <= p_last and (select app.can_read_domain(p_company, 'revenue'))
       and (not p_filters ? 'segment' or k.segment = any (public.an_arr(p_filters, 'segment')))
       and (not p_filters ? 'sector' or k.sector = any (public.an_arr(p_filters, 'sector')))
       and (not p_filters ? 'geography' or k.geography = any (public.an_arr(p_filters, 'geography')))
@@ -763,11 +765,11 @@ create or replace function public.ri_customer_list(p_company uuid, p_month date,
                                                    p_sort text default 'arr', p_limit int default 50, p_offset int default 0)
 returns table (id uuid, name text, segment text, sector text, business_unit text, origin text, account_owner text, crm_id text,
                arr numeric, arr_compare numeric, total bigint)
-language sql stable set search_path = public as $$
+language sql stable security definer set search_path = public as $$
   with cur as (
     select s.customer_id, sum(s.arr) filter (where s.month = p_month) as arr, sum(s.arr) filter (where s.month = p_compare) as arr_compare
     from public.ri_arr_monthly s
-    where s.company_id = p_company and s.month in (p_month, p_compare)
+    where s.company_id = p_company and s.month in (p_month, p_compare) and (select app.can_read_domain(p_company, 'revenue'))
       and (not p_filters ? 'product' or s.product_key = any (public.an_arr(p_filters, 'product')))
     group by 1
   ),
@@ -791,7 +793,7 @@ $$;
 create or replace function public.ri_movement_customers(p_company uuid, p_from date, p_to date, p_type text, p_filters jsonb default '{}',
                                                         p_limit int default 50, p_offset int default 0)
 returns table (id uuid, name text, segment text, sector text, business_unit text, account_owner text, amount numeric, months bigint, total bigint, total_amount numeric)
-language sql stable set search_path = public as $$
+language sql stable security definer set search_path = public as $$
   with t as (
     select grp::uuid as cid, sum(amount) as amount, count(*) as months
     from public.ri_movement_totals(p_company, p_from, p_to, p_filters, 'customer')
@@ -807,7 +809,7 @@ $$;
 create or replace function public.ci_ledger_totals(p_company uuid, p_from date, p_to date, p_scenarios text[], p_group text default null,
                                                    p_filters jsonb default '{}')
 returns table (grp text, month date, scenario text, section text, line text, amount numeric)
-language sql stable set search_path = public as $$
+language sql stable security definer set search_path = public as $$
   select case p_group
            when 'department' then cc.department
            when 'function' then cc.function
@@ -827,6 +829,7 @@ language sql stable set search_path = public as $$
   join public.ci_accounts a on a.company_id = l.company_id and a.code = l.account_code
   join public.ci_cost_centres cc on cc.company_id = l.company_id and cc.code = l.cost_centre_code
   where l.company_id = p_company and l.month between p_from and p_to and l.scenario = any (p_scenarios)
+    and (select app.can_read_domain(p_company, 'cost'))
     and (not p_filters ? 'department' or cc.department = any (public.an_arr(p_filters, 'department')))
     and (not p_filters ? 'function' or cc.function = any (public.an_arr(p_filters, 'function')))
     and (not p_filters ? 'cost_centre' or cc.code = any (public.an_arr(p_filters, 'cost_centre')))

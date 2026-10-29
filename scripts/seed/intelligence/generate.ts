@@ -220,7 +220,7 @@ export function generate(pr: Profile, today = new Date()): Generated {
       }
       // reactivations
       for (const c of customers) {
-        if (c.churnedAt === null || c.disposed_on || i - c.churnedAt < 5 || r() > pr.reactivationPerMonth) continue;
+        if (c.churnedAt === null || c.disposed_on || (pr.disposal && i >= pr.disposal.at && c.sector === pr.disposal.sector) || i - c.churnedAt < 5 || r() > pr.reactivationPerMonth) continue;
         const s = sectorOf.get(c.sector)!;
         c.arr.set(pick(r, s.primary), roundTo(c.lastArr * between(r, [0.5, 0.9]), 10));
         c.churnedAt = null;
@@ -228,6 +228,8 @@ export function generate(pr: Profile, today = new Date()): Generated {
       }
       // new logos
       for (const s of pr.sectors) {
+        // no new customers for a business that has been sold
+        if (pr.disposal && i >= pr.disposal.at && s.key === pr.disposal.sector) continue;
         const lambda = (s.newPerYear / 12) * (mon >= pr.fyStart && mon < pr.fyStart + 3 ? 1.5 : 0.85);
         // Poisson arrivals
         let count = -1;

@@ -7,6 +7,8 @@ import {
   Bot,
   Briefcase,
   Combine,
+  TrendingUp,
+  Receipt,
   Inbox,
   ShieldCheck,
   CalendarClock,
@@ -79,6 +81,14 @@ const COMPANY_NAV: Array<{ label?: string; leadership?: boolean; items: NavItem[
       { href: "/execution", label: "Issues & Actions", icon: ListChecks },
       { href: "/reporting", label: "Reporting", icon: FileText },
       { href: "/inbox", label: "Agent requests", icon: Inbox },
+    ],
+  },
+  {
+    label: "Intelligence",
+    leadership: true,
+    items: [
+      { href: "/revenue", label: "Revenue Intelligence", icon: TrendingUp },
+      { href: "/cost", label: "Cost Intelligence", icon: Receipt },
     ],
   },
   {

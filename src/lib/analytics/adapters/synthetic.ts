@@ -105,6 +105,36 @@ export class SyntheticSource implements AnalyticsSource {
       cohort: cohort.data ?? null,
     };
   }
+  async cohortMembers(o: { cohort: string; grain: "month" | "quarter" | "year"; dimension?: string | null; stepMonths: number; age: number; end: string; limit?: number; offset?: number }) {
+    const DIMS = ["segment", "sector", "geography", "size_band", "business_unit", "contract_type", "origin"];
+    let q = this.db.from("ri_cohorts").select("customer_id, cohort_month, ri_customers!inner(name, sector)", { count: "exact" }).eq("company_id", this.companyId).lte("cohort_month", o.end);
+    if (o.dimension === "product") q = q.eq("primary_product", o.cohort);
+    else if (o.dimension && DIMS.includes(o.dimension)) q = q.eq(o.dimension as "sector", o.cohort);
+    else {
+      const m = /^(\d{4})(?:-Q([1-4])|-(\d{2}))?$/.exec(o.cohort);
+      if (!m) return { rows: [], total: 0 };
+      const y = Number(m[1]);
+      const from = m[2] ? `${y}-${String((Number(m[2]) - 1) * 3 + 1).padStart(2, "0")}-01` : m[3] ? `${y}-${m[3]}-01` : `${y}-01-01`;
+      const span = m[2] ? 3 : m[3] ? 1 : 12;
+      const toD = new Date(Date.UTC(Number(from.slice(0, 4)), Number(from.slice(5, 7)) - 1 + span, 1)).toISOString().slice(0, 10);
+      q = q.gte("cohort_month", from).lt("cohort_month", toD);
+    }
+    const limit = Math.min(o.limit ?? 50, 200);
+    const { data, count, error } = await q.order("cohort_month").order("customer_id").range(o.offset ?? 0, (o.offset ?? 0) + limit - 1);
+    if (error) throw new SourceUnavailable(error.message);
+    const ids = (data ?? []).map((r) => r.customer_id);
+    const arr = ids.length ? await all((a, b) => this.db.from("ri_arr_monthly").select("customer_id, month, arr").eq("company_id", this.companyId).in("customer_id", ids).range(a, b)) : [];
+    const at = (cid: string, m: string) => arr.filter((r) => r.customer_id === cid && r.month === m).reduce((s, r) => s + num(r.arr), 0);
+    const add = (m: string, n: number) => new Date(Date.UTC(Number(m.slice(0, 4)), Number(m.slice(5, 7)) - 1 + n, 1)).toISOString().slice(0, 10);
+    return {
+      total: count ?? 0,
+      rows: (data ?? []).map((r) => {
+        const c = r.ri_customers as unknown as { name: string; sector: string | null };
+        const ageMonth = add(r.cohort_month, o.age * o.stepMonths);
+        return { id: r.customer_id, name: c.name, sector: c.sector, cohort_month: r.cohort_month, initial: at(r.customer_id, r.cohort_month), atAge: ageMonth <= o.end ? at(r.customer_id, ageMonth) : null, current: at(r.customer_id, o.end) };
+      }),
+    };
+  }
   async reconciliation() {
     return all((a, b) => this.db.from("ri_finance_recon").select("*").eq("company_id", this.companyId).order("month").range(a, b));
   }

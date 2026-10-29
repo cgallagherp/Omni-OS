@@ -29,6 +29,7 @@ export class WarehouseSource implements AnalyticsSource {
   customers = async () => this.fail();
   movementCustomers = async () => this.fail();
   customer = async () => this.fail();
+  cohortMembers = async () => this.fail();
   reconciliation = async () => this.fail();
   dataQuality = async () => this.fail();
   restatements = async () => this.fail();
