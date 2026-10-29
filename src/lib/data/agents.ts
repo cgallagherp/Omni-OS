@@ -74,6 +74,13 @@ export function agentOutcomes(o: Awaited<ReturnType<typeof loadAgentOverview>>, 
         { label: "Approaches prepared", value: o.approvals.filter((x) => x.agent_key === "ma" && x.action_type === "send_external_message").length },
         { label: "Approaches approved", value: o.approvals.filter((x) => x.agent_key === "ma" && x.action_type === "send_external_message" && (x.status === "approved" || x.status === "executed")).length },
       ];
+    case "integration":
+      return [
+        { label: "Drafts generated", value: a.all.filter((i) => i.workflow.startsWith("integration.generate") || i.workflow === "integration.review").length },
+        { label: "Follow-ups sent", value: msgs.filter((m) => m.kind !== "escalation").length },
+        { label: "Escalations agreed", value: executed },
+        { label: "Issues resolved", value: a.done.filter((i) => outcome(i).resolved === true).length },
+      ];
   }
 }
 

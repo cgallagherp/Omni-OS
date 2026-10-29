@@ -103,6 +103,23 @@ async function processSignalBatch(admin: Db, now: Date, companies: Set<string>):
     if (s.entity_type === "actions" && s.entity_id) {
       const { data } = await admin.from("agent_investigations").select("id").eq("subject_id", s.entity_id).in("status", ACTIVE_STATUSES);
       for (const i of data ?? []) wakeInvestigations.add(i.id);
+      // corrective actions linked to an integration activity wake the case tracking them
+      const { data: act } = await admin.from("actions").select("integration_activity_id").eq("id", s.entity_id).maybeSingle();
+      if (act?.integration_activity_id) {
+        const { data: w } = await admin.from("agent_investigations").select("id").eq("subject_id", act.integration_activity_id).in("status", ACTIVE_STATUSES);
+        for (const i of w ?? []) wakeInvestigations.add(i.id);
+      }
+    }
+    if (s.entity_type === "integration_activities" && s.entity_id) {
+      const { data } = await admin.from("agent_investigations").select("id").eq("company_id", s.company_id).in("status", ACTIVE_STATUSES).or(`subject_id.eq.${s.entity_id},trigger->>dependent_id.eq.${s.entity_id}`);
+      for (const i of data ?? []) wakeInvestigations.add(i.id);
+    }
+    if (s.entity_type === "synergy_actuals" && s.entity_id) {
+      const { data: a } = await admin.from("synergy_actuals").select("synergy_id").eq("id", s.entity_id).maybeSingle();
+      if (a) {
+        const { data } = await admin.from("agent_investigations").select("id").eq("subject_id", a.synergy_id).in("status", ACTIVE_STATUSES);
+        for (const i of data ?? []) wakeInvestigations.add(i.id);
+      }
     }
   }
   if (wakeInvestigations.size) {

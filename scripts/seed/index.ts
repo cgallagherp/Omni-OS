@@ -17,7 +17,7 @@ import { buildWeeklyScorecard, scorecardEmailHtml, weekStartOf } from "../../src
 import { fiscalYearOf } from "../../src/lib/domain/metrics";
 import { reportDue } from "../../src/lib/domain/reporting";
 import { TODAY, addDays, day, iso, prevQuarter, quarterBounds, quarterOf, rng, type CompanySpec, type MetricSpec } from "./lib";
-import { seedAgents, seedMa } from "./agents";
+import { seedAgents, seedIntegration, seedMa } from "./agents";
 import { clinara } from "./clinara";
 import { kestrel } from "./kestrel";
 import { ashworth } from "./ashworth";
@@ -488,6 +488,7 @@ async function seedCompany(spec: CompanySpec, userIds: Map<string, string>, seed
   // Agentic layer: principal, configuration, sandbox connections and data
   await seedAgents(db, cid, spec.company.slug, ceoUser);
   if (spec.company.slug === "kestrel") await seedMa(db, cid, ceoUser, owner("ma"));
+  if (spec.company.slug === "clinara") await seedIntegration(db, cid, ceoUser);
 
   return { cid, metricValues: values.length };
 }

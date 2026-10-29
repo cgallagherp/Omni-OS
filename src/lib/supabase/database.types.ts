@@ -23,19 +23,99 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "actions": {
+            "acquisitions": {
                   Row: {
-                    "company_id": string,"completed_at": string | null,"created_at": string,"created_by": string | null,"decision_id": string | null,"description": string | null,"due_date": string | null,"id": string,"issue_id": string | null,"listening_round_id": string | null,"meeting_id": string | null,"metric_id": string | null,"owner_id": string,"quarterly_priority_id": string | null,"status": Database["public"]['Enums']["action_status"],"title": string,"updated_at": string
+                    "agent_paused": boolean,"annual_goal_id": string | null,"commitments": string,"company_id": string,"completed_at": string | null,"completion_date": string | null,"created_at": string,"created_by": string | null,"diligence_findings": string,"expected_synergies": string,"handover": Json | null,"handover_approved_by": string | null,"id": string,"integration_model": string,"key_risks": string,"leader_crew_id": string | null,"ma_target_id": string | null,"name": string,"objectives": string,"operating_model": string,"org_info": string,"playbook_id": string | null,"quarterly_priority_id": string | null,"rationale": string,"recommendation": Json | null,"recommended_playbook_id": string | null,"sponsor_crew_id": string | null,"status": string,"systems_info": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "company_id": string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decision_id"?: string | null,"description"?: string | null,"due_date"?: string | null,"id"?: string,"issue_id"?: string | null,"listening_round_id"?: string | null,"meeting_id"?: string | null,"metric_id"?: string | null,"owner_id": string,"quarterly_priority_id"?: string | null,"status"?: Database["public"]['Enums']["action_status"],"title": string,"updated_at"?: string
+                    "agent_paused"?: boolean,"annual_goal_id"?: string | null,"commitments"?: string,"company_id": string,"completed_at"?: string | null,"completion_date"?: string | null,"created_at"?: string,"created_by"?: string | null,"diligence_findings"?: string,"expected_synergies"?: string,"handover"?: Json | null,"handover_approved_by"?: string | null,"id"?: string,"integration_model"?: string,"key_risks"?: string,"leader_crew_id"?: string | null,"ma_target_id"?: string | null,"name": string,"objectives"?: string,"operating_model"?: string,"org_info"?: string,"playbook_id"?: string | null,"quarterly_priority_id"?: string | null,"rationale"?: string,"recommendation"?: Json | null,"recommended_playbook_id"?: string | null,"sponsor_crew_id"?: string | null,"status"?: string,"systems_info"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "company_id"?: string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decision_id"?: string | null,"description"?: string | null,"due_date"?: string | null,"id"?: string,"issue_id"?: string | null,"listening_round_id"?: string | null,"meeting_id"?: string | null,"metric_id"?: string | null,"owner_id"?: string,"quarterly_priority_id"?: string | null,"status"?: Database["public"]['Enums']["action_status"],"title"?: string,"updated_at"?: string
+                    "agent_paused"?: boolean,"annual_goal_id"?: string | null,"commitments"?: string,"company_id"?: string,"completed_at"?: string | null,"completion_date"?: string | null,"created_at"?: string,"created_by"?: string | null,"diligence_findings"?: string,"expected_synergies"?: string,"handover"?: Json | null,"handover_approved_by"?: string | null,"id"?: string,"integration_model"?: string,"key_risks"?: string,"leader_crew_id"?: string | null,"ma_target_id"?: string | null,"name"?: string,"objectives"?: string,"operating_model"?: string,"org_info"?: string,"playbook_id"?: string | null,"quarterly_priority_id"?: string | null,"rationale"?: string,"recommendation"?: Json | null,"recommended_playbook_id"?: string | null,"sponsor_crew_id"?: string | null,"status"?: string,"systems_info"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "acquisitions_company_id_annual_goal_id_fkey"
+      columns: ["company_id","annual_goal_id"]
+isOneToOne: false
+      referencedRelation: "annual_goals"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "acquisitions_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "acquisitions_company_id_leader_crew_id_fkey"
+      columns: ["company_id","leader_crew_id"]
+isOneToOne: false
+      referencedRelation: "crew_members"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "acquisitions_company_id_ma_target_id_fkey"
+      columns: ["company_id","ma_target_id"]
+isOneToOne: false
+      referencedRelation: "ma_targets"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "acquisitions_company_id_playbook_id_fkey"
+      columns: ["company_id","playbook_id"]
+isOneToOne: false
+      referencedRelation: "integration_playbooks"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "acquisitions_company_id_quarterly_priority_id_fkey"
+      columns: ["company_id","quarterly_priority_id"]
+isOneToOne: false
+      referencedRelation: "quarterly_priorities"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "acquisitions_company_id_recommended_playbook_id_fkey"
+      columns: ["company_id","recommended_playbook_id"]
+isOneToOne: false
+      referencedRelation: "integration_playbooks"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "acquisitions_company_id_sponsor_crew_id_fkey"
+      columns: ["company_id","sponsor_crew_id"]
+isOneToOne: false
+      referencedRelation: "crew_members"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "acquisitions_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "acquisitions_handover_approved_by_fkey"
+      columns: ["handover_approved_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"actions": {
+                  Row: {
+                    "acquisition_id": string | null,"company_id": string,"completed_at": string | null,"created_at": string,"created_by": string | null,"decision_id": string | null,"description": string | null,"due_date": string | null,"id": string,"integration_activity_id": string | null,"issue_id": string | null,"listening_round_id": string | null,"meeting_id": string | null,"metric_id": string | null,"owner_id": string,"quarterly_priority_id": string | null,"status": Database["public"]['Enums']["action_status"],"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acquisition_id"?: string | null,"company_id": string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decision_id"?: string | null,"description"?: string | null,"due_date"?: string | null,"id"?: string,"integration_activity_id"?: string | null,"issue_id"?: string | null,"listening_round_id"?: string | null,"meeting_id"?: string | null,"metric_id"?: string | null,"owner_id": string,"quarterly_priority_id"?: string | null,"status"?: Database["public"]['Enums']["action_status"],"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "acquisition_id"?: string | null,"company_id"?: string,"completed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"decision_id"?: string | null,"description"?: string | null,"due_date"?: string | null,"id"?: string,"integration_activity_id"?: string | null,"issue_id"?: string | null,"listening_round_id"?: string | null,"meeting_id"?: string | null,"metric_id"?: string | null,"owner_id"?: string,"quarterly_priority_id"?: string | null,"status"?: Database["public"]['Enums']["action_status"],"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "actions_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
       foreignKeyName: "actions_company_id_decision_id_fkey"
       columns: ["company_id","decision_id"]
 isOneToOne: false
@@ -47,6 +127,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "companies"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "actions_company_id_integration_activity_id_fkey"
+      columns: ["company_id","integration_activity_id"]
+isOneToOne: false
+      referencedRelation: "integration_activities"
+      referencedColumns: ["company_id","id"]
     },{
       foreignKeyName: "actions_company_id_issue_id_fkey"
       columns: ["company_id","issue_id"]
@@ -739,6 +825,62 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"integration_activities": {
+                  Row: {
+                    "accountable_function": string,"acquisition_id": string,"approval_required": string | null,"approval_status": string,"approved_by": string | null,"baseline_due_date": string | null,"basis": string | null,"blocked_reason": string | null,"citations": NonNullable<Json>,"company_id": string,"completed_at": string | null,"completion_criteria": string,"created_at": string,"criteria_met": boolean | null,"critical": boolean,"description": string,"deviation_note": string | null,"due_date": string | null,"evidence_note": string | null,"evidence_required": string,"human_only": boolean,"human_only_reason": string | null,"id": string,"key": string,"milestone": boolean,"origin": string,"owner_crew_id": string | null,"plan_id": string,"sort": number,"start_date": string | null,"status": string,"title": string,"updated_at": string,"verified_at": string | null,"verified_by": string | null,"workstream_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accountable_function"?: string,"acquisition_id": string,"approval_required"?: string | null,"approval_status"?: string,"approved_by"?: string | null,"baseline_due_date"?: string | null,"basis"?: string | null,"blocked_reason"?: string | null,"citations"?: NonNullable<Json>,"company_id": string,"completed_at"?: string | null,"completion_criteria"?: string,"created_at"?: string,"criteria_met"?: boolean | null,"critical"?: boolean,"description"?: string,"deviation_note"?: string | null,"due_date"?: string | null,"evidence_note"?: string | null,"evidence_required"?: string,"human_only"?: boolean,"human_only_reason"?: string | null,"id"?: string,"key": string,"milestone"?: boolean,"origin"?: string,"owner_crew_id"?: string | null,"plan_id": string,"sort"?: number,"start_date"?: string | null,"status"?: string,"title": string,"updated_at"?: string,"verified_at"?: string | null,"verified_by"?: string | null,"workstream_id": string
+                  }
+                  Update: {
+                    "accountable_function"?: string,"acquisition_id"?: string,"approval_required"?: string | null,"approval_status"?: string,"approved_by"?: string | null,"baseline_due_date"?: string | null,"basis"?: string | null,"blocked_reason"?: string | null,"citations"?: NonNullable<Json>,"company_id"?: string,"completed_at"?: string | null,"completion_criteria"?: string,"created_at"?: string,"criteria_met"?: boolean | null,"critical"?: boolean,"description"?: string,"deviation_note"?: string | null,"due_date"?: string | null,"evidence_note"?: string | null,"evidence_required"?: string,"human_only"?: boolean,"human_only_reason"?: string | null,"id"?: string,"key"?: string,"milestone"?: boolean,"origin"?: string,"owner_crew_id"?: string | null,"plan_id"?: string,"sort"?: number,"start_date"?: string | null,"status"?: string,"title"?: string,"updated_at"?: string,"verified_at"?: string | null,"verified_by"?: string | null,"workstream_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_activities_approved_by_fkey"
+      columns: ["approved_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_activities_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_activities_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_activities_company_id_owner_crew_id_fkey"
+      columns: ["company_id","owner_crew_id"]
+isOneToOne: false
+      referencedRelation: "crew_members"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_activities_company_id_plan_id_fkey"
+      columns: ["company_id","plan_id"]
+isOneToOne: false
+      referencedRelation: "integration_plans"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_activities_company_id_workstream_id_fkey"
+      columns: ["company_id","workstream_id"]
+isOneToOne: false
+      referencedRelation: "integration_workstreams"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_activities_verified_by_fkey"
+      columns: ["verified_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"integration_connections": {
                   Row: {
                     "company_id": string,"config": NonNullable<Json>,"connected_at": string,"connected_by": string | null,"created_at": string,"display_name": string,"id": string,"last_error": string | null,"last_used_at": string | null,"mode": string,"provider": string,"scopes": (string)[],"status": string,"updated_at": string
@@ -765,6 +907,158 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"integration_dependencies": {
+                  Row: {
+                    "acquisition_id": string,"company_id": string,"from_activity_id": string,"id": string,"note": string | null,"to_activity_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acquisition_id": string,"company_id": string,"from_activity_id": string,"id"?: string,"note"?: string | null,"to_activity_id": string
+                  }
+                  Update: {
+                    "acquisition_id"?: string,"company_id"?: string,"from_activity_id"?: string,"id"?: string,"note"?: string | null,"to_activity_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_dependencies_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_dependencies_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_dependencies_company_id_from_activity_id_fkey"
+      columns: ["company_id","from_activity_id"]
+isOneToOne: false
+      referencedRelation: "integration_activities"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_dependencies_company_id_to_activity_id_fkey"
+      columns: ["company_id","to_activity_id"]
+isOneToOne: false
+      referencedRelation: "integration_activities"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"integration_plans": {
+                  Row: {
+                    "acquisition_id": string,"approval_note": string | null,"approved_at": string | null,"approved_by": string | null,"company_id": string,"content": NonNullable<Json>,"created_at": string,"created_by": string | null,"generation_note": string | null,"generator": string,"id": string,"model": string | null,"playbook_id": string,"status": string,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acquisition_id": string,"approval_note"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"company_id": string,"content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"generation_note"?: string | null,"generator"?: string,"id"?: string,"model"?: string | null,"playbook_id": string,"status"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "acquisition_id"?: string,"approval_note"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"company_id"?: string,"content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"generation_note"?: string | null,"generator"?: string,"id"?: string,"model"?: string | null,"playbook_id"?: string,"status"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_plans_approved_by_fkey"
+      columns: ["approved_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_plans_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_plans_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_plans_company_id_playbook_id_fkey"
+      columns: ["company_id","playbook_id"]
+isOneToOne: false
+      referencedRelation: "integration_playbooks"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_plans_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"integration_playbooks": {
+                  Row: {
+                    "acquisition_types": (string)[],"applies_when": string,"approval_note": string | null,"approved_at": string | null,"approved_by": string | null,"based_on_id": string | null,"change_summary": string | null,"company_id": string,"content": NonNullable<Json>,"created_at": string,"created_by": string | null,"generation_note": string | null,"generator": string,"id": string,"lineage_id": string,"model": string | null,"name": string,"source_ids": (string)[],"status": string,"updated_at": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acquisition_types"?: (string)[],"applies_when"?: string,"approval_note"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"based_on_id"?: string | null,"change_summary"?: string | null,"company_id": string,"content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"generation_note"?: string | null,"generator"?: string,"id"?: string,"lineage_id": string,"model"?: string | null,"name": string,"source_ids"?: (string)[],"status"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Update: {
+                    "acquisition_types"?: (string)[],"applies_when"?: string,"approval_note"?: string | null,"approved_at"?: string | null,"approved_by"?: string | null,"based_on_id"?: string | null,"change_summary"?: string | null,"company_id"?: string,"content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"generation_note"?: string | null,"generator"?: string,"id"?: string,"lineage_id"?: string,"model"?: string | null,"name"?: string,"source_ids"?: (string)[],"status"?: string,"updated_at"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_playbooks_approved_by_fkey"
+      columns: ["approved_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_playbooks_company_id_based_on_id_fkey"
+      columns: ["company_id","based_on_id"]
+isOneToOne: false
+      referencedRelation: "integration_playbooks"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_playbooks_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_playbooks_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"integration_reviews": {
+                  Row: {
+                    "acquisition_id": string,"company_id": string,"content": NonNullable<Json>,"created_at": string,"created_by": string | null,"generation_note": string | null,"generator": string | null,"id": string,"model": string | null,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acquisition_id": string,"company_id": string,"content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"generation_note"?: string | null,"generator"?: string | null,"id"?: string,"model"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "acquisition_id"?: string,"company_id"?: string,"content"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"generation_note"?: string | null,"generator"?: string | null,"id"?: string,"model"?: string | null,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_reviews_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_reviews_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_reviews_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"integration_secrets": {
                   Row: {
                     "ciphertext": string,"company_id": string,"connection_id": string,"updated_at": string
@@ -782,6 +1076,82 @@ isOneToOne: false
       columns: ["company_id","connection_id"]
 isOneToOne: false
       referencedRelation: "integration_connections"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"integration_synergies": {
+                  Row: {
+                    "acquisition_id": string,"baseline": number,"category": string,"company_id": string,"created_at": string,"description": string,"evidence_source": string,"expected_realisation_date": string | null,"id": string,"key": string,"measurement": string,"metric_id": string | null,"owner_crew_id": string | null,"start_date": string | null,"supporting_activity_ids": (string)[],"target": number,"unit": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acquisition_id": string,"baseline"?: number,"category": string,"company_id": string,"created_at"?: string,"description": string,"evidence_source"?: string,"expected_realisation_date"?: string | null,"id"?: string,"key": string,"measurement"?: string,"metric_id"?: string | null,"owner_crew_id"?: string | null,"start_date"?: string | null,"supporting_activity_ids"?: (string)[],"target": number,"unit"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "acquisition_id"?: string,"baseline"?: number,"category"?: string,"company_id"?: string,"created_at"?: string,"description"?: string,"evidence_source"?: string,"expected_realisation_date"?: string | null,"id"?: string,"key"?: string,"measurement"?: string,"metric_id"?: string | null,"owner_crew_id"?: string | null,"start_date"?: string | null,"supporting_activity_ids"?: (string)[],"target"?: number,"unit"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_synergies_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_synergies_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_synergies_company_id_metric_id_fkey"
+      columns: ["company_id","metric_id"]
+isOneToOne: false
+      referencedRelation: "metrics"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_synergies_company_id_owner_crew_id_fkey"
+      columns: ["company_id","owner_crew_id"]
+isOneToOne: false
+      referencedRelation: "crew_members"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"integration_workstreams": {
+                  Row: {
+                    "accountable_function": string,"acquisition_id": string,"company_id": string,"created_at": string,"id": string,"key": string,"name": string,"objective": string,"origin": string,"owner_crew_id": string | null,"plan_id": string,"sort": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accountable_function"?: string,"acquisition_id": string,"company_id": string,"created_at"?: string,"id"?: string,"key": string,"name": string,"objective"?: string,"origin"?: string,"owner_crew_id"?: string | null,"plan_id": string,"sort"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "accountable_function"?: string,"acquisition_id"?: string,"company_id"?: string,"created_at"?: string,"id"?: string,"key"?: string,"name"?: string,"objective"?: string,"origin"?: string,"owner_crew_id"?: string | null,"plan_id"?: string,"sort"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_workstreams_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_workstreams_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_workstreams_company_id_owner_crew_id_fkey"
+      columns: ["company_id","owner_crew_id"]
+isOneToOne: false
+      referencedRelation: "crew_members"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "integration_workstreams_company_id_plan_id_fkey"
+      columns: ["company_id","plan_id"]
+isOneToOne: false
+      referencedRelation: "integration_plans"
       referencedColumns: ["company_id","id"]
     }
                   ]
@@ -807,17 +1177,23 @@ isOneToOne: true
                   ]
                 },"issues": {
                   Row: {
-                    "annual_goal_id": string | null,"company_id": string,"created_at": string,"description": string | null,"escalated_to_omni": boolean,"id": string,"metric_id": string | null,"owner_id": string,"priority": Database["public"]['Enums']["issue_priority"],"quarterly_priority_id": string | null,"raised_by_id": string | null,"raised_in_meeting_id": string | null,"resolution": string | null,"resolved_at": string | null,"resolved_in_meeting_id": string | null,"status": Database["public"]['Enums']["issue_status"],"title": string,"updated_at": string
+                    "acquisition_id": string | null,"annual_goal_id": string | null,"company_id": string,"created_at": string,"description": string | null,"escalated_to_omni": boolean,"id": string,"metric_id": string | null,"owner_id": string,"priority": Database["public"]['Enums']["issue_priority"],"quarterly_priority_id": string | null,"raised_by_id": string | null,"raised_in_meeting_id": string | null,"resolution": string | null,"resolved_at": string | null,"resolved_in_meeting_id": string | null,"status": Database["public"]['Enums']["issue_status"],"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "annual_goal_id"?: string | null,"company_id": string,"created_at"?: string,"description"?: string | null,"escalated_to_omni"?: boolean,"id"?: string,"metric_id"?: string | null,"owner_id": string,"priority"?: Database["public"]['Enums']["issue_priority"],"quarterly_priority_id"?: string | null,"raised_by_id"?: string | null,"raised_in_meeting_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_in_meeting_id"?: string | null,"status"?: Database["public"]['Enums']["issue_status"],"title": string,"updated_at"?: string
+                    "acquisition_id"?: string | null,"annual_goal_id"?: string | null,"company_id": string,"created_at"?: string,"description"?: string | null,"escalated_to_omni"?: boolean,"id"?: string,"metric_id"?: string | null,"owner_id": string,"priority"?: Database["public"]['Enums']["issue_priority"],"quarterly_priority_id"?: string | null,"raised_by_id"?: string | null,"raised_in_meeting_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_in_meeting_id"?: string | null,"status"?: Database["public"]['Enums']["issue_status"],"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "annual_goal_id"?: string | null,"company_id"?: string,"created_at"?: string,"description"?: string | null,"escalated_to_omni"?: boolean,"id"?: string,"metric_id"?: string | null,"owner_id"?: string,"priority"?: Database["public"]['Enums']["issue_priority"],"quarterly_priority_id"?: string | null,"raised_by_id"?: string | null,"raised_in_meeting_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_in_meeting_id"?: string | null,"status"?: Database["public"]['Enums']["issue_status"],"title"?: string,"updated_at"?: string
+                    "acquisition_id"?: string | null,"annual_goal_id"?: string | null,"company_id"?: string,"created_at"?: string,"description"?: string | null,"escalated_to_omni"?: boolean,"id"?: string,"metric_id"?: string | null,"owner_id"?: string,"priority"?: Database["public"]['Enums']["issue_priority"],"quarterly_priority_id"?: string | null,"raised_by_id"?: string | null,"raised_in_meeting_id"?: string | null,"resolution"?: string | null,"resolved_at"?: string | null,"resolved_in_meeting_id"?: string | null,"status"?: Database["public"]['Enums']["issue_status"],"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "issues_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
       foreignKeyName: "issues_company_id_annual_goal_id_fkey"
       columns: ["company_id","annual_goal_id"]
 isOneToOne: false
@@ -865,6 +1241,70 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "meetings"
       referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"knowledge_chunks": {
+                  Row: {
+                    "char_end": number,"char_start": number,"company_id": string,"heading": string | null,"id": string,"ordinal": number,"page": number | null,"source_id": string,"text": string,"tsv": unknown
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "char_end"?: number,"char_start"?: number,"company_id": string,"heading"?: string | null,"id"?: string,"ordinal": number,"page"?: number | null,"source_id": string,"text": string,"tsv"?: never
+                  }
+                  Update: {
+                    "char_end"?: number,"char_start"?: number,"company_id"?: string,"heading"?: string | null,"id"?: string,"ordinal"?: number,"page"?: number | null,"source_id"?: string,"text"?: string,"tsv"?: never
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "knowledge_chunks_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "knowledge_chunks_company_id_source_id_fkey"
+      columns: ["company_id","source_id"]
+isOneToOne: false
+      referencedRelation: "knowledge_sources"
+      referencedColumns: ["company_id","id"]
+    }
+                  ]
+                },"knowledge_sources": {
+                  Row: {
+                    "acquisition_id": string | null,"char_count": number | null,"company_id": string,"connection_id": string | null,"created_at": string,"doc_type": string,"error": string | null,"external_ref": string | null,"filename": string | null,"id": string,"mime": string | null,"origin": string,"page_count": number | null,"restricted": boolean,"sha256": string | null,"size_bytes": number | null,"status": string,"text_content": string | null,"title": string,"updated_at": string,"uploaded_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "acquisition_id"?: string | null,"char_count"?: number | null,"company_id": string,"connection_id"?: string | null,"created_at"?: string,"doc_type"?: string,"error"?: string | null,"external_ref"?: string | null,"filename"?: string | null,"id"?: string,"mime"?: string | null,"origin"?: string,"page_count"?: number | null,"restricted"?: boolean,"sha256"?: string | null,"size_bytes"?: number | null,"status"?: string,"text_content"?: string | null,"title": string,"updated_at"?: string,"uploaded_by"?: string | null
+                  }
+                  Update: {
+                    "acquisition_id"?: string | null,"char_count"?: number | null,"company_id"?: string,"connection_id"?: string | null,"created_at"?: string,"doc_type"?: string,"error"?: string | null,"external_ref"?: string | null,"filename"?: string | null,"id"?: string,"mime"?: string | null,"origin"?: string,"page_count"?: number | null,"restricted"?: boolean,"sha256"?: string | null,"size_bytes"?: number | null,"status"?: string,"text_content"?: string | null,"title"?: string,"updated_at"?: string,"uploaded_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "knowledge_sources_company_id_acquisition_id_fkey"
+      columns: ["company_id","acquisition_id"]
+isOneToOne: false
+      referencedRelation: "acquisitions"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "knowledge_sources_company_id_connection_id_fkey"
+      columns: ["company_id","connection_id"]
+isOneToOne: false
+      referencedRelation: "integration_connections"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "knowledge_sources_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "knowledge_sources_uploaded_by_fkey"
+      columns: ["uploaded_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
     }
                   ]
                 },"listening_rounds": {
@@ -1331,6 +1771,50 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     }
                   ]
+                },"playbook_change_proposals": {
+                  Row: {
+                    "applies_to": string,"change": NonNullable<Json>,"company_id": string,"created_at": string,"decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"evidence": NonNullable<Json>,"expected_benefit": string,"id": string,"playbook_id": string,"resulting_playbook_id": string | null,"review_id": string | null,"status": string,"title": string,"updated_at": string,"what_happened": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "applies_to"?: string,"change": NonNullable<Json>,"company_id": string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"evidence"?: NonNullable<Json>,"expected_benefit"?: string,"id"?: string,"playbook_id": string,"resulting_playbook_id"?: string | null,"review_id"?: string | null,"status"?: string,"title": string,"updated_at"?: string,"what_happened": string
+                  }
+                  Update: {
+                    "applies_to"?: string,"change"?: NonNullable<Json>,"company_id"?: string,"created_at"?: string,"decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"evidence"?: NonNullable<Json>,"expected_benefit"?: string,"id"?: string,"playbook_id"?: string,"resulting_playbook_id"?: string | null,"review_id"?: string | null,"status"?: string,"title"?: string,"updated_at"?: string,"what_happened"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "playbook_change_proposals_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "playbook_change_proposals_company_id_playbook_id_fkey"
+      columns: ["company_id","playbook_id"]
+isOneToOne: false
+      referencedRelation: "integration_playbooks"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "playbook_change_proposals_company_id_resulting_playbook_id_fkey"
+      columns: ["company_id","resulting_playbook_id"]
+isOneToOne: false
+      referencedRelation: "integration_playbooks"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "playbook_change_proposals_company_id_review_id_fkey"
+      columns: ["company_id","review_id"]
+isOneToOne: false
+      referencedRelation: "integration_reviews"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "playbook_change_proposals_decided_by_fkey"
+      columns: ["decided_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"priority_milestones": {
                   Row: {
                     "company_id": string,"created_at": string,"done": boolean,"done_at": string | null,"due_date": string | null,"id": string,"priority_id": string,"sort_order": number,"title": string,"updated_at": string
@@ -1511,6 +1995,38 @@ isOneToOne: false
       referencedColumns: ["company_id","id"]
     }
                   ]
+                },"synergy_actuals": {
+                  Row: {
+                    "company_id": string,"created_at": string,"entered_by": string | null,"id": string,"kind": string,"note": string | null,"period_start": string,"source": string,"synergy_id": string,"updated_at": string,"value": number,"verified": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "company_id": string,"created_at"?: string,"entered_by"?: string | null,"id"?: string,"kind"?: string,"note"?: string | null,"period_start": string,"source"?: string,"synergy_id": string,"updated_at"?: string,"value": number,"verified"?: boolean
+                  }
+                  Update: {
+                    "company_id"?: string,"created_at"?: string,"entered_by"?: string | null,"id"?: string,"kind"?: string,"note"?: string | null,"period_start"?: string,"source"?: string,"synergy_id"?: string,"updated_at"?: string,"value"?: number,"verified"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "synergy_actuals_company_id_fkey"
+      columns: ["company_id"]
+isOneToOne: false
+      referencedRelation: "companies"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "synergy_actuals_company_id_synergy_id_fkey"
+      columns: ["company_id","synergy_id"]
+isOneToOne: false
+      referencedRelation: "integration_synergies"
+      referencedColumns: ["company_id","id"]
+    },{
+      foreignKeyName: "synergy_actuals_entered_by_fkey"
+      columns: ["entered_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"weekly_scorecards": {
                   Row: {
                     "approved_at": string,"approved_by": string | null,"company_id": string,"created_at": string,"id": string,"recipients": NonNullable<Json>,"rows": NonNullable<Json>,"sent_at": string | null,"week_start": string
@@ -1569,14 +2085,17 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "agent_add_ma_target":
+            "agent_activate_integrations":
+{ Args: { "p_company": string }; Returns: number
+                           },
+"agent_add_ma_target":
 { Args: { "p_approval"?: string,"p_company": string,"p_target": Json }; Returns: string
                            },
 "agent_apply_approval":
 { Args: { "p_approval": string }; Returns: Json
                            },
 "agent_create_action":
-{ Args: { "p_agent": string,"p_approval"?: string,"p_company": string,"p_description": string,"p_due": string,"p_metric"?: string,"p_owner": string,"p_priority"?: string,"p_title": string }; Returns: string
+{ Args: { "p_acquisition"?: string,"p_activity"?: string,"p_agent": string,"p_approval"?: string,"p_company": string,"p_description": string,"p_due": string,"p_metric"?: string,"p_owner": string,"p_priority"?: string,"p_title": string }; Returns: string
                            },
 "agent_crm_create_task":
 { Args: { "p_agent": string,"p_approval"?: string,"p_company": string,"p_due": string,"p_key": string,"p_notes": string,"p_opportunity": string,"p_owner": string,"p_subject": string }; Returns: string
@@ -1584,8 +2103,20 @@ isOneToOne: false
 "agent_mark_executed":
 { Args: { "p_approval": string,"p_result": Json }; Returns: undefined
                            },
+"agent_propose_playbook_change":
+{ Args: { "p_applies": string,"p_benefit": string,"p_change": Json,"p_evidence": Json,"p_playbook": string,"p_review": string,"p_title": string,"p_what": string }; Returns: string
+                           },
+"agent_save_draft":
+{ Args: { "p_content": Json,"p_id": string,"p_kind": string,"p_meta": Json }; Returns: undefined
+                           },
 "agent_set_ma_stage":
 { Args: { "p_company": string,"p_stage": string,"p_target": string }; Returns: undefined
+                           },
+"approve_integration_plan":
+{ Args: { "p_note"?: string,"p_plan": string }; Returns: undefined
+                           },
+"approve_playbook":
+{ Args: { "p_note"?: string,"p_playbook": string }; Returns: undefined
                            },
 "approve_quarterly_reset":
 { Args: { "p_reset_id": string,"p_snapshot": Json }; Returns: undefined
@@ -1616,7 +2147,10 @@ isOneToOne: false
         to: "agent_runs"
         isOneToOne: false
         isSetofReturn: true
-      } }
+      } },
+"connection_ciphertext":
+{ Args: { "p_connection": string }; Returns: string
+                           }
           }
           Enums: {
             "action_status": "open"|"done"|"cancelled","company_role": "omni"|"company_admin"|"executive"|"observer"|"ceo"|"agent","gap_status": "open"|"in_progress"|"closed","issue_priority": "critical"|"high"|"medium"|"low","issue_status": "open"|"in_discussion"|"resolved","listening_kind": "employee"|"customer","meeting_status": "scheduled"|"in_progress"|"completed","meeting_type": "weekly"|"monthly"|"quarterly"|"annual"|"board_monthly"|"board_quarterly","metric_category": "financial"|"commercial"|"operational"|"customer"|"people","metric_direction": "higher_is_better"|"lower_is_better"|"range","metric_frequency": "weekly"|"monthly","metric_unit": "currency"|"percent"|"number"|"days"|"ratio"|"score","org_action_type": "critical_role"|"hire"|"structure"|"capability","platform_role": "platform_admin"|"omni_team","priority_outcome": "achieved"|"partly_achieved"|"missed"|"stopped","quarter_status": "planning"|"active"|"closed","rag_status": "on_track"|"at_risk"|"off_track"|"done"|"missed"|"not_started","report_kind": "flash"|"monthly_board"|"quarterly_board"

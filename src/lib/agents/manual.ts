@@ -8,9 +8,9 @@ type Db = SupabaseClient<Database>;
 
 export interface ManualSpec {
   agent: AgentKey;
-  subject: "action" | "metric" | "thesis" | "pipeline";
+  subject: "action" | "metric" | "thesis" | "pipeline" | "integration_activity" | "synergy" | "acquisition";
   label: string;
-  describe: (db: Db, companyId: string, subjectId: string | undefined, now: Date) => Promise<{ title: string; dedupeKey: string }>;
+  describe: (db: Db, companyId: string, subjectId: string | undefined, now: Date) => Promise<{ title: string; dedupeKey: string; trigger?: Record<string, unknown> }>;
 }
 
 const isoWeek = (d: Date) => {
@@ -22,6 +22,43 @@ const isoWeek = (d: Date) => {
 export { isoWeek };
 
 export const WORKFLOW_SUBJECTS: Record<string, ManualSpec> = {
+  "integration.activity_watch": {
+    agent: "integration",
+    subject: "integration_activity",
+    label: "Investigate an integration activity",
+    describe: async (db, cid, id) => {
+      const { data } = await db.from("integration_activities").select("title, due_date, acquisition_id, acquisitions(name)").eq("company_id", cid).eq("id", id!).single();
+      const acq = (data?.acquisitions as unknown as { name: string } | null)?.name ?? "Integration";
+      return { title: `${acq}: ${data?.title ?? "activity"}`.slice(0, 300), dedupeKey: `int-manual:${id}:${data?.due_date}`, trigger: { kind: data?.due_date && data.due_date < new Date().toISOString().slice(0, 10) ? "overdue" : "dependency", acquisition_id: data?.acquisition_id, dependent_id: null } };
+    },
+  },
+  "integration.synergy_shortfall": {
+    agent: "integration",
+    subject: "synergy",
+    label: "Investigate a synergy against plan",
+    describe: async (db, cid, id, now) => {
+      const { data } = await db.from("integration_synergies").select("description, acquisition_id").eq("company_id", cid).eq("id", id!).single();
+      return { title: `Synergy: ${data?.description ?? ""}`.slice(0, 300), dedupeKey: `int-syn-manual:${id}:${isoWeek(now)}`, trigger: { acquisition_id: data?.acquisition_id } };
+    },
+  },
+  "integration.weekly_status": {
+    agent: "integration",
+    subject: "acquisition",
+    label: "Prepare an integration status report",
+    describe: async (db, cid, id, now) => {
+      const { data } = await db.from("acquisitions").select("name").eq("company_id", cid).eq("id", id!).single();
+      return { title: `${data?.name ?? "Integration"}: status report`, dedupeKey: `int-status-manual:${id}:${now.toISOString().slice(0, 13)}`, trigger: { acquisition_id: id } };
+    },
+  },
+  "ceo.integration_review": {
+    agent: "ceo",
+    subject: "acquisition",
+    label: "Assess an integration against its objectives",
+    describe: async (db, cid, id, now) => {
+      const { data } = await db.from("acquisitions").select("name").eq("company_id", cid).eq("id", id!).single();
+      return { title: `Integration review: ${data?.name ?? ""}`, dedupeKey: `ceo-int:${id}:${isoWeek(now)}`, trigger: { acquisition_id: id } };
+    },
+  },
   "execution.overdue_action": {
     agent: "execution",
     subject: "action",

@@ -40,6 +40,17 @@ export async function respondToAgent(companyId: string, messageId: string, fd: F
       if (!ctx.can.write) throw new ActionError("Your reply was recorded, but you cannot mark the action done; its owner or the CEO can.");
       await updateScoped(ctx, "actions", actionId, { status: "done" });
     }
+    const ictx = msg.context as { integration_activity_id?: string; trigger?: string };
+    if (ictx?.integration_activity_id && d.kind === "done" && !actionId) {
+      // a reply to the M&A Integration Agent updates the plan: done, or criteria verified
+      if (!ctx.can.write) throw new ActionError("Your reply was recorded, but only the integration team can update the plan.");
+      const patch = ictx.trigger === "evidence" ? { criteria_met: true, evidence_note: d.text ?? "Verified in reply to the M&A Integration Agent" } : { status: "done", evidence_note: d.text ?? null };
+      const { error: e3 } = await ctx.supabase.from("integration_activities").update(patch as never).eq("company_id", companyId).eq("id", ictx.integration_activity_id);
+      dbError(e3);
+    } else if (ictx?.integration_activity_id && d.text) {
+      const patch = d.kind === "blocked" && ctx.can.write ? { status: "blocked", blocked_reason: d.text, evidence_note: `Blocked: ${d.text}` } : { evidence_note: d.text };
+      await ctx.supabase.from("integration_activities").update(patch as never).eq("company_id", companyId).eq("id", ictx.integration_activity_id);
+    }
     if (actionId && d.text) {
       await ctx.supabase.from("comments").insert({ company_id: companyId, entity_type: "action", entity_id: actionId, kind: "update", body: `Reply to the Execution Agent: ${d.text}`, author_id: ctx.viewer.id });
     }
@@ -85,7 +96,7 @@ export async function requestInvestigation(companyId: string, fd: FormData): Pro
   return run(async () => {
     const ctx = await requireCompanyPermission(companyId, "write");
     const d = z
-      .object({ agent: agentKey, workflow: z.string(), subject_type: z.enum(["action", "metric", "thesis", "pipeline"]), subject_id: z.string().uuid().optional().or(z.literal("").transform(() => undefined)), note: zOptional(500) })
+      .object({ agent: agentKey, workflow: z.string(), subject_type: z.enum(["action", "metric", "thesis", "pipeline", "integration_activity", "synergy", "acquisition"]), subject_id: z.string().uuid().optional().or(z.literal("").transform(() => undefined)), note: zOptional(500) })
       .parse(formObject(fd));
     const { WORKFLOW_SUBJECTS } = await import("@/lib/agents/manual");
     const spec = WORKFLOW_SUBJECTS[d.workflow];
@@ -94,12 +105,12 @@ export async function requestInvestigation(companyId: string, fd: FormData): Pro
     if (!cfg?.enabled) throw new ActionError(`${AGENTS[d.agent].name} is switched off. An administrator can enable it in Agents → Configuration.`);
     const subjectId = d.subject_id;
     if (spec.subject !== "pipeline" && !subjectId) throw new ActionError("Choose what to investigate.");
-    const { title, dedupeKey } = await spec.describe(ctx.supabase, companyId, subjectId, new Date());
+    const { title, dedupeKey, trigger: extra } = await spec.describe(ctx.supabase, companyId, subjectId, new Date());
     const { data: live } = await ctx.supabase.from("agent_investigations").select("id").eq("company_id", companyId).eq("dedupe_key", dedupeKey).not("status", "in", "(resolved,closed,failed)").maybeSingle();
     if (live) return { ok: true, message: "Already under investigation", data: { id: live.id } };
     const { data: inv, error } = await ctx.supabase
       .from("agent_investigations")
-      .insert({ company_id: companyId, agent_key: d.agent, workflow: d.workflow, title, dedupe_key: dedupeKey, subject_type: spec.subject, subject_id: subjectId ?? null, requested_by: ctx.viewer.id, trigger: { type: "manual", summary: `Requested by ${ctx.viewer.fullName}${d.note ? `: ${d.note}` : ""}`, by: ctx.viewer.id } })
+      .insert({ company_id: companyId, agent_key: d.agent, workflow: d.workflow, title, dedupe_key: dedupeKey, subject_type: spec.subject, subject_id: subjectId ?? null, requested_by: ctx.viewer.id, trigger: { ...(extra ?? {}), type: "manual", summary: `Requested by ${ctx.viewer.fullName}${d.note ? `: ${d.note}` : ""}`, by: ctx.viewer.id } as never })
       .select("id")
       .single();
     dbError(error);

@@ -1,8 +1,8 @@
 // Agent registry: what each agent is for, what it may use and how it is triggered.
 // The four agents are configurations of one platform (runtime, tools, authority, ledger).
 
-export type AgentKey = "ceo" | "commercial" | "ma" | "execution";
-export const AGENT_KEYS: AgentKey[] = ["execution", "ceo", "commercial", "ma"];
+export type AgentKey = "ceo" | "commercial" | "ma" | "execution" | "integration";
+export const AGENT_KEYS: AgentKey[] = ["execution", "ceo", "commercial", "ma", "integration"];
 
 export type Mode = "off" | "approval" | "auto";
 
@@ -76,13 +76,13 @@ export const AGENTS: Record<AgentKey, AgentDef> = {
     short: "Strategic performance and orchestration",
     remit: "Assesses whether the business is progressing towards its North Star and delivering its Flight Plan. Investigates KPI exceptions against the strategy, separates confirmed findings from hypotheses and missing evidence, commissions specialist agents, proposes interventions and monitors whether they work.",
     context: ["North Star", "Flight Plan", "Crew", "Mission Control"],
-    tools: ["context.kpi", "agents.delegate", "mission_control.apply_approval"],
+    tools: ["context.kpi", "agents.delegate", "mission_control.apply_approval", "integration.read_plan"],
     categories: ["record_findings", "propose_issue", "internal_task"],
     schedules: [
       { key: "kpi_exceptions", label: "Investigate off-track strategic KPIs (on change)", kind: "event" },
       { key: "weekly_review", label: "Weekly review of strategic KPIs and interventions", kind: "weekly" },
     ],
-    delegatesTo: ["commercial", "execution", "ma"],
+    delegatesTo: ["commercial", "execution", "ma", "integration"],
     outcomes: ["Material risks identified", "Investigations completed", "Interventions approved", "KPIs recovered"],
   },
   commercial: {
@@ -112,6 +112,25 @@ export const AGENTS: Record<AgentKey, AgentDef> = {
     delegatesTo: ["execution"],
     outcomes: ["Qualified targets identified", "Targets researched", "Approaches prepared", "Pipeline advanced"],
   },
+  integration: {
+    key: "integration",
+    name: "M&A Integration Agent",
+    short: "Post-acquisition integration",
+    remit: "Turns the company's own integration knowledge into management-approved playbooks and acquisition plans, then drives execution: monitors milestones, dependencies and completion criteria, follows up with owners, escalates material issues into Mission Control, tracks agreed corrective actions and synergies, and proposes playbook improvements after each integration. It never terminates employees, changes contracts, commits expenditure, migrates or deletes production data, or discloses transaction information.",
+    context: ["North Star", "Flight Plan", "Crew", "Mission Control", "Integration knowledge", "Integration plans"],
+    tools: [
+      "integration.read_knowledge", "integration.save_draft", "integration.read_plan", "integration.activate", "integration.propose_playbook_change",
+      "inbox.send_message", "mission_control.apply_approval", "mission_control.mark_executed", "agents.delegate",
+    ],
+    categories: ["record_findings", "internal_followup", "escalation", "internal_task", "commitment_change", "propose_issue"],
+    schedules: [
+      { key: "integration_watch", label: "Deadlines, dependencies and completion criteria (on change and daily)", kind: "event" },
+      { key: "weekly_status", label: "Weekly integration status review", kind: "weekly" },
+      { key: "synergy_monitor", label: "Monthly synergy monitoring (and when results are recorded)", kind: "event" },
+    ],
+    delegatesTo: ["commercial"],
+    outcomes: ["Playbooks drafted", "Plans drafted", "Follow-ups and escalations", "Milestones delivered on time", "Synergies on plan"],
+  },
 };
 
 export interface AgentConfig {
@@ -120,7 +139,16 @@ export interface AgentConfig {
   category_modes: Partial<Record<Category, Mode>>;
   approvers: Partial<Record<Category, ApproverRole>>;
   schedules: Record<string, { enabled: boolean }>;
-  escalation: { reminder_after_days: number; max_reminders: number; escalate_after_days: number; escalate_to: "manager" | "ceo" };
+  escalation: {
+    reminder_after_days: number;
+    max_reminders: number;
+    escalate_after_days: number;
+    escalate_to: "manager" | "ceo";
+    /** Integration Agent: minimum days between follow-ups to the same person, and the working day */
+    cooldown_days?: number;
+    lead_days?: number;
+    working_hours?: { start: number; end: number; weekdays_only: boolean };
+  };
   limits: { max_runs_per_day: number; max_actions_per_day: number; max_messages_per_day: number; monthly_ai_budget_gbp: number };
   notifications: Record<string, string>;
   allowed_connections: string[];

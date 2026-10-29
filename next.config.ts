@@ -11,7 +11,9 @@ const nextConfig: NextConfig = {
     },
   },
   experimental: {
-    serverActions: { bodySizeLimit: "4mb" },
+    // Integration documents are uploaded one file per request (15 MB maximum per file)
+    serverActions: { bodySizeLimit: "16mb" },
+    proxyClientMaxBodySize: "16mb",
   },
 };
 

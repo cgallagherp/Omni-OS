@@ -217,7 +217,7 @@ export class Runtime {
       if (error && error.code !== "23505") throw new ToolError(`idempotency: ${error.message}`, true);
     }
     const result = await effect();
-    await maybeFault(tool);
+    await maybeFault(tool, key);
     await this.db.from("agent_side_effects").update({ status: "done", result: (result ?? null) as unknown as J, completed_at: new Date().toISOString() }).eq("company_id", this.companyId).eq("idempotency_key", key);
     return result;
   }
@@ -254,9 +254,13 @@ export function defineTool<I, O>(t: ToolDef<I, O>): ToolDef<I, O> {
   return t;
 }
 
-/** Test hook: simulate a crash immediately after a side effect, before the step is saved. */
-async function maybeFault(tool: string) {
-  if (process.env.AGENT_FAULT_AFTER_SIDE_EFFECT && process.env.AGENT_FAULT_AFTER_SIDE_EFFECT === tool) {
+/** Test hook: simulate a crash immediately after a side effect, before the step is saved.
+ *  AGENT_FAULT_AFTER_SIDE_EFFECT = "<tool>" or "<tool>@<idempotency-key prefix>". */
+async function maybeFault(tool: string, key = "") {
+  const spec = process.env.AGENT_FAULT_AFTER_SIDE_EFFECT;
+  if (!spec) return;
+  const [t, prefix] = spec.split("@");
+  if (t === tool && (!prefix || key.startsWith(prefix))) {
     process.env.AGENT_FAULT_AFTER_SIDE_EFFECT = "";
     throw new Error(`simulated crash after ${tool}`);
   }

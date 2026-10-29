@@ -4,6 +4,7 @@
 // (e.g. the due date), so a case closed by management is not reopened until
 // something material changes.
 import { loadCompanySnapshot } from "@/lib/data/snapshot";
+import { assessSynergy, daysBetween, summariseIntegration, type ActivityLike } from "@/lib/domain/integration";
 import { isoWeek } from "./manual";
 import type { Db } from "./principal";
 import { ACTIVE_STATUSES, type AgentConfig, type AgentKey } from "./registry";
@@ -35,7 +36,12 @@ export const overdueActions: Detector = {
   schedule: "overdue_actions",
   async detect({ db, companyId, now }) {
     const today = now.toISOString().slice(0, 10);
-    const { data: overdue } = await db.from("actions").select("id, title, due_date, owner_id").eq("company_id", companyId).eq("status", "open").lt("due_date", today).order("due_date").limit(50);
+    // Actions linked to an integration are followed up by the M&A Integration Agent when it is enabled,
+    // so the two agents never send competing reminders about the same commitment.
+    const { data: integ } = await db.from("agent_configs").select("enabled").eq("company_id", companyId).eq("agent_key", "integration").maybeSingle();
+    let q = db.from("actions").select("id, title, due_date, owner_id").eq("company_id", companyId).eq("status", "open").lt("due_date", today);
+    if (integ?.enabled) q = q.is("acquisition_id", null);
+    const { data: overdue } = await q.order("due_date").limit(50);
     const keyOf = (a: { id: string; due_date: string | null }) => `overdue:${a.id}:${a.due_date}`;
     const known = await seen(db, companyId, (overdue ?? []).map(keyOf));
     let opened = 0;
@@ -134,4 +140,114 @@ export const marketScan: Detector = {
   },
 };
 
-export const DETECTORS: Detector[] = [overdueActions, kpiExceptions, pipelineReview, marketScan];
+/**
+ * M&A Integration Agent: on every change and at least every 15 minutes, for each active
+ * integration (not paused): activate plans whose transaction has completed, then look for
+ * dependencies that threaten an upcoming milestone, overdue activities, missing approvals,
+ * unverified completion criteria and synergies below plan. Dedupe keys encode the evidence
+ * (e.g. the due date), so a resolved case reopens only if something material changes.
+ */
+export const integrationWatch: Detector = {
+  agent: "integration",
+  schedule: "integration_watch",
+  async detect({ db, companyId, config, now }) {
+    const today = now.toISOString().slice(0, 10);
+    await db.rpc("agent_activate_integrations", { p_company: companyId });
+    const { data: acqs } = await db.from("acquisitions").select("id, name").eq("company_id", companyId).eq("status", "active").eq("agent_paused", false);
+    const lead = config.escalation.lead_days ?? 10;
+    let opened = 0;
+    for (const acq of acqs ?? []) {
+      const [{ data: acts }, { data: deps }] = await Promise.all([
+        db.from("integration_activities").select("*").eq("company_id", companyId).eq("acquisition_id", acq.id),
+        db.from("integration_dependencies").select("from_activity_id, to_activity_id").eq("company_id", companyId).eq("acquisition_id", acq.id),
+      ]);
+      const activities = (acts ?? []) as unknown as Array<ActivityLike & { approval_required: string | null }>;
+      const byId = new Map(activities.map((a) => [a.id, a]));
+      const sum = summariseIntegration(activities, deps ?? [], today, lead);
+      const want: Array<{ key: string; activity: (typeof activities)[number]; kind: string; dependent?: string; summary: string }> = [];
+      // a prerequisite unfinished while its dependent is due within the lead time
+      for (const d of deps ?? []) {
+        const p = byId.get(d.from_activity_id);
+        const t = byId.get(d.to_activity_id);
+        if (!p || !t || ["done", "not_needed"].includes(p.status) || ["done", "not_needed"].includes(t.status) || !t.due_date) continue;
+        const startSoon = t.start_date && daysBetween(today, t.start_date) <= lead;
+        if (daysBetween(today, t.due_date) <= lead || startSoon)
+          want.push({ key: `int-dep:${p.id}:${p.due_date}`, activity: p, kind: "dependency", dependent: t.id, summary: `"${t.title}" is due ${t.due_date} but depends on "${p.title}", which is not finished` });
+      }
+      for (const a of sum.overdue) want.push({ key: `int-overdue:${a.id}:${a.due_date}`, activity: byId.get(a.id)!, kind: "overdue", summary: `"${a.title}" passed its due date (${a.due_date})` });
+      for (const a of sum.pendingApprovals) if (a.due_date && daysBetween(today, a.due_date) <= 3) want.push({ key: `int-approval:${a.id}`, activity: byId.get(a.id)!, kind: "approval", summary: `"${a.title}" needs approval before ${a.due_date}` });
+      for (const a of sum.unverified) if (a.completed_at && daysBetween(a.completed_at.slice(0, 10), today) >= 1 && a.criteria_met === null) want.push({ key: `int-verify:${a.id}:${a.completed_at.slice(0, 10)}`, activity: byId.get(a.id)!, kind: "evidence", summary: `"${a.title}" is marked done but its completion criteria are not verified` });
+      // one live case per activity, whatever triggered it
+      const { data: live } = await db.from("agent_investigations").select("subject_id").eq("company_id", companyId).eq("workflow", "integration.activity_watch").in("status", ACTIVE_STATUSES);
+      const busy = new Set((live ?? []).map((x) => x.subject_id));
+      const known = await seen(db, companyId, want.map((w) => w.key));
+      for (const w of want) {
+        if (opened >= MAX_NEW_PER_TICK) break;
+        if (known.has(w.key) || busy.has(w.activity.id)) continue;
+        const r = await openInvestigation(db, {
+          companyId, agent: "integration", workflow: "integration.activity_watch", title: `${acq.name}: ${w.activity.title}`.slice(0, 300), dedupeKey: w.key,
+          subjectType: "integration_activity", subjectId: w.activity.id, severity: w.activity.critical ? "high" : "medium",
+          trigger: { type: "event", kind: w.kind, summary: w.summary, acquisition_id: acq.id, dependent_id: w.dependent ?? null, due_date: w.activity.due_date },
+        });
+        if (r.created) {
+          opened += 1;
+          busy.add(w.activity.id);
+        }
+      }
+    }
+    return opened;
+  },
+};
+
+/** Synergies below plan, checked whenever results are recorded (and monthly). */
+export const synergyMonitor: Detector = {
+  agent: "integration",
+  schedule: "synergy_monitor",
+  async detect({ db, companyId, now }) {
+    const today = now.toISOString().slice(0, 10);
+    const { data: acqs } = await db.from("acquisitions").select("id, name").eq("company_id", companyId).eq("status", "active").eq("agent_paused", false);
+    let opened = 0;
+    for (const acq of acqs ?? []) {
+      const [{ data: syn }, { data: acts }] = await Promise.all([
+        db.from("integration_synergies").select("*").eq("company_id", companyId).eq("acquisition_id", acq.id),
+        db.from("integration_activities").select("*").eq("company_id", companyId).eq("acquisition_id", acq.id),
+      ]);
+      if (!syn?.length) continue;
+      const { data: actuals } = await db.from("synergy_actuals").select("synergy_id, period_start, value, kind, verified").eq("company_id", companyId).in("synergy_id", syn.map((x) => x.id));
+      const byId = new Map(((acts ?? []) as unknown as ActivityLike[]).map((a) => [a.id, a]));
+      for (const x of syn) {
+        const s = { ...x, baseline: Number(x.baseline), target: Number(x.target) };
+        const r = assessSynergy(s, (actuals ?? []).map((a) => ({ ...a, value: Number(a.value), kind: a.kind as "actual" | "forecast" })), byId, today);
+        if (r.status !== "off_track" || !r.realisedPeriod) continue;
+        const key = `int-syn:${x.id}:${r.realisedPeriod}`;
+        const res = await openInvestigation(db, {
+          companyId, agent: "integration", workflow: "integration.synergy_shortfall", title: `${acq.name}: ${x.description}`.slice(0, 300), dedupeKey: key,
+          subjectType: "synergy", subjectId: x.id, severity: "high",
+          trigger: { type: "event", summary: `Verified result for ${r.realisedPeriod} is ${Math.round((r.attainment ?? 0) * 100)}% of plan`, acquisition_id: acq.id },
+        });
+        if (res.created) opened += 1;
+      }
+    }
+    return opened;
+  },
+};
+
+/** Weekly status per active integration. */
+export const integrationStatus: Detector = {
+  agent: "integration",
+  schedule: "weekly_status",
+  async detect({ db, companyId, now }) {
+    const { data: acqs } = await db.from("acquisitions").select("id, name").eq("company_id", companyId).eq("status", "active").eq("agent_paused", false);
+    const keyOf = (a: { id: string }) => `int-status:${a.id}:${isoWeek(now)}`;
+    const known = await seen(db, companyId, (acqs ?? []).map(keyOf));
+    let opened = 0;
+    for (const a of acqs ?? []) {
+      if (known.has(keyOf(a))) continue;
+      const r = await openInvestigation(db, { companyId, agent: "integration", workflow: "integration.weekly_status", title: `${a.name}: weekly status — week ${isoWeek(now).split("-W")[1]}`, dedupeKey: keyOf(a), subjectType: "acquisition", subjectId: a.id, trigger: { type: "schedule", summary: "Weekly integration status review", acquisition_id: a.id } });
+      if (r.created) opened += 1;
+    }
+    return opened;
+  },
+};
+
+export const DETECTORS: Detector[] = [overdueActions, kpiExceptions, pipelineReview, marketScan, integrationWatch, synergyMonitor, integrationStatus];

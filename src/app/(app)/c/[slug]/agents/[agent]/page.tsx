@@ -31,15 +31,21 @@ export default async function AgentPage({ params }: { params: Promise<{ slug: st
   const completed = a.all.filter((i) => ["resolved", "closed"].includes(i.status)).slice(0, 10);
   const proposals = o.approvals.filter((x) => x.agent_key === agent).slice(0, 6);
   const workflows = Object.entries(WORKFLOW_SUBJECTS).filter(([, w]) => w.agent === agent).map(([key, w]) => ({ key, label: w.label, subject: w.subject }));
-  const [actionsRes, metricsRes, thesesRes] = await Promise.all([
+  const [actionsRes, metricsRes, thesesRes, intActs, intSyn, acqs] = await Promise.all([
     ctx.supabase.from("actions").select("id, title, due_date").eq("company_id", cid).eq("status", "open").order("due_date").limit(60),
     ctx.supabase.from("metrics").select("id, name").eq("company_id", cid).eq("archived", false).order("sort_order"),
     ctx.supabase.from("ma_theses").select("*").eq("company_id", cid).order("created_at"),
+    ctx.supabase.from("integration_activities").select("id, title, due_date, status").eq("company_id", cid).not("status", "in", "(done,not_needed)").order("due_date").limit(80),
+    ctx.supabase.from("integration_synergies").select("id, description").eq("company_id", cid).limit(40),
+    ctx.supabase.from("acquisitions").select("id, name, status").eq("company_id", cid).in("status", ["ready", "active"]),
   ]);
   const subjects = {
     action: (actionsRes.data ?? []).map((x) => ({ id: x.id, label: `${x.title}${x.due_date ? ` (due ${x.due_date})` : ""}` })),
     metric: (metricsRes.data ?? []).map((x) => ({ id: x.id, label: x.name })),
     thesis: (thesesRes.data ?? []).filter((t) => t.status === "approved").map((x) => ({ id: x.id, label: x.title })),
+    integration_activity: (intActs.data ?? []).map((x) => ({ id: x.id, label: `${x.title}${x.due_date ? ` (due ${x.due_date})` : ""}` })),
+    synergy: (intSyn.data ?? []).map((x) => ({ id: x.id, label: x.description })),
+    acquisition: (acqs.data ?? []).map((x) => ({ id: x.id, label: x.name })),
   };
   const conns = o.connections.filter((c) => cfg?.allowed_connections.includes(c.id));
 

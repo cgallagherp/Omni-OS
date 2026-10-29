@@ -4,6 +4,7 @@ import {
   BadgeCheck,
   Building2,
   CircleDot,
+  Combine,
   Compass,
   FileSearch,
   GitBranch,
@@ -24,7 +25,7 @@ import { formatDateTime } from "@/lib/domain/format";
 import { INVESTIGATION_STATUS_LABEL, type AgentKey, type Finding, type SourceRef } from "@/lib/agents/registry";
 import { cn } from "@/lib/utils";
 
-export const AGENT_ICON = { execution: ListChecks, ceo: Compass, commercial: TrendingUp, ma: Building2 } as const satisfies Record<AgentKey, unknown>;
+export const AGENT_ICON = { execution: ListChecks, ceo: Compass, commercial: TrendingUp, ma: Building2, integration: Combine } as const satisfies Record<AgentKey, unknown>;
 
 export function AgentIcon({ agent, className }: { agent: AgentKey; className?: string }) {
   const I = AGENT_ICON[agent];

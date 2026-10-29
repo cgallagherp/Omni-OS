@@ -5,6 +5,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/lib/supabase/database.types";
 import { ensureAgentPrincipal } from "../../src/lib/agents/principal";
 import { AGENT_KEYS, defaultConfig, type AgentKey, type Category, type Mode } from "../../src/lib/agents/registry";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { ingestDocument, type DocType } from "../../src/lib/integration/ingest";
 import { TODAY, addDays, iso, rng } from "./lib";
 
 type Db = SupabaseClient<Database>;
@@ -147,4 +150,37 @@ export async function seedMa(db: Db, cid: string, approverId: string, leadCrewId
     C("Celtic Life Safety", "Wales", "Life safety", "Fire alarm, emergency lighting and nurse-call maintenance for care homes.", "Founder-owned", null, null, null, "SB100340"),
   ]);
   return thesis.id;
+}
+
+// --- M&A Integration: Clinara's own integration knowledge -------------------------
+// Seven fictional documents from three previous acquisitions (DentalDesk 2023, OptiBook
+// 2024, CareNotes 2025) plus the Board's buy-and-build strategy, ingested through the same
+// extraction pipeline as an upload. No playbook is seeded: generating one is the demo.
+const INTEGRATION_DOCS: Array<[string, string, DocType]> = [
+  ["clinara-integration-playbook-v2.docx", "Clinara Integration Playbook v2 (2024)", "playbook"],
+  ["dentaldesk-integration-plan-2023.xlsx", "DentalDesk integration plan (2023)", "integration_plan"],
+  ["optibook-100-day-plan-2024.pptx", "OptiBook 100-day plan (2024)", "integration_plan"],
+  ["carenotes-integration-checklist-2025.pdf", "CareNotes integration checklist (2025)", "checklist"],
+  ["post-acquisition-review-dentaldesk.docx", "Post-acquisition review — DentalDesk", "post_acquisition_review"],
+  ["lessons-learned-optibook-carenotes.md", "Lessons learned — OptiBook and CareNotes", "lessons_learned"],
+  ["buy-and-build-strategy-board-2026.pdf", "Buy-and-build strategy (Board, March 2026)", "strategy"],
+];
+
+export async function seedIntegration(db: Db, cid: string, ceoUserId: string) {
+  const dir = path.join(process.cwd(), "scripts", "seed", "integration-docs");
+  for (const [file, title, docType] of INTEGRATION_DOCS) {
+    const r = await ingestDocument(db, { companyId: cid, title, filename: file, mime: null, bytes: new Uint8Array(readFileSync(path.join(dir, file))), docType, origin: "seed" });
+    if (r.status !== "ready") throw new Error(`integration doc ${file}: ${r.error}`);
+  }
+  // Clinara has switched the M&A Integration Agent on: routine follow-ups are automatic;
+  // escalations, revised dates and new Mission Control issues need approval.
+  const d = defaultConfig("integration");
+  const { error } = await db.from("agent_configs").update({
+    enabled: true,
+    category_modes: { ...d.category_modes, internal_followup: "auto" },
+    escalation: { ...d.escalation, cooldown_days: 2, lead_days: 10, working_hours: { start: 7, end: 21, weekdays_only: false } },
+    allow_external_ai: true,
+    updated_by: ceoUserId,
+  }).eq("company_id", cid).eq("agent_key", "integration");
+  if (error) throw new Error(`integration config: ${error.message}`);
 }
