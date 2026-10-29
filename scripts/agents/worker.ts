@@ -24,12 +24,18 @@ const admin = serviceClient();
 let stopping = false;
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => { stopping = true; console.log(`\n${sig}: finishing the current tick…`); });
 
+const MAX_RUNS = 10;
+
 async function one() {
-  const started = Date.now();
-  const r = await tick({ admin, workerId, log: quiet ? undefined : (m) => console.log(`  ${m}`) });
-  if (!quiet || r.runs || r.opened || r.errors.length)
-    console.log(`[${new Date().toISOString()}] tick: ${r.signals} signals · ${r.opened} opened · ${r.runs} runs · ${r.steps} steps · ${r.errors.length} errors (${Date.now() - started} ms)`);
-  for (const e of r.errors) console.error(`  ! ${e}`);
+  // A full claim means more runs are due: keep going (bounded) so one pass covers everything due now.
+  for (let pass = 0; pass < 8 && !stopping; pass++) {
+    const started = Date.now();
+    const r = await tick({ admin, workerId, maxRuns: MAX_RUNS, log: quiet ? undefined : (m) => console.log(`  ${m}`) });
+    if (!quiet || r.runs || r.opened || r.errors.length)
+      console.log(`[${new Date().toISOString()}] tick: ${r.signals} signals · ${r.opened} opened · ${r.runs} runs · ${r.steps} steps · ${r.errors.length} errors (${Date.now() - started} ms)`);
+    for (const e of r.errors) console.error(`  ! ${e}`);
+    if (r.runs < MAX_RUNS) break;
+  }
 }
 
 async function main() {

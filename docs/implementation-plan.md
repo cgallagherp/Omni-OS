@@ -53,6 +53,15 @@ Legend: ✅ implemented and covered by automated tests · 🟡 implemented, veri
 | Autonomous monitoring: overdue, dependencies, critical path, approvals, evidence; follow-ups with hours/cooldowns; approved date changes and Mission Control escalations | ✅ E2E tested |
 | Synergies (verified actuals only), CEO Agent assessment, weekly status, learning loop with change proposals | ✅ |
 
+## Milestone 6 — Revenue & Cost Intelligence ✅
+| Item | Status |
+|---|---|
+| Governed-layer schema, domain RLS, versioned definitions, adapter layer (synthetic + warehouse stub), data contracts | ✅ |
+| Revenue: overview, ARR bridge with drill-down, GRR/NRR, cohorts, segments, customers, reconciliation & data quality, definitions | ✅ E2E tested |
+| Cost: overview, trends, analysis to transactions, suppliers, GP/EBITDA bridges, aggregated people, data quality, definitions | ✅ E2E tested |
+| Mission Control links, CEO/Commercial agent workflows, portfolio comparison, access settings | ✅ |
+| Snowflake/dbt warehouse adapter | Not built — contracts in `docs/intelligence-data-contracts.md` |
+
 ## Not yet built / next steps
 - Integrations that populate `metric_values` (`source = 'integration'`) — data model is ready; no connectors yet.
 - Notifications (email/Slack) for overdue actions and escalations.

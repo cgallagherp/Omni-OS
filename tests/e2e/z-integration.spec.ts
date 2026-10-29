@@ -23,9 +23,10 @@ test("playbook → plan → agent follow-up → approved escalation", async ({ p
   test.setTimeout(300_000);
   const { data: company } = await admin.from("companies").select("id").eq("slug", "clinara").single();
   const cid = company!.id;
-  // the test may run at any hour: let the agent message whenever it runs
+  // the test may run at any hour, and in any order relative to other follow-ups to the same owner:
+  // let the agent message whenever it runs, without the per-recipient cooldown
   const { data: cfg } = await admin.from("agent_configs").select("escalation").eq("company_id", cid).eq("agent_key", "integration").single();
-  await admin.from("agent_configs").update({ escalation: { ...(cfg!.escalation as object), working_hours: { start: 0, end: 24, weekdays_only: false } } }).eq("company_id", cid).eq("agent_key", "integration");
+  await admin.from("agent_configs").update({ escalation: { ...(cfg!.escalation as object), working_hours: { start: 0, end: 24, weekdays_only: false }, cooldown_days: 0 } }).eq("company_id", cid).eq("agent_key", "integration");
 
   // 1–4. Generate the master playbook from the selected knowledge
   await login(page, "daniel@clinara.demo");

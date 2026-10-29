@@ -90,6 +90,10 @@ The worker uses the service role only to claim runs, mint agent tokens and decry
 * `tests/e2e/z-agents.spec.ts` — inbox reply and approval queue in a browser with a real worker.
 * M&A Integration Agent: `tests/integration/integration-agent.test.ts`, `tests/unit/integration.test.ts`, `tests/e2e/z-integration.spec.ts` (see `docs/integration.md`).
 
+## Financial variance (Revenue & Cost Intelligence)
+
+The CEO Agent's `ceo.financial_variance` workflow is triggered by the `financialVariance` detector (high/critical exceptions from `src/lib/analytics/exceptions.ts`, at most two a day per company) or by **Investigate** on an exception. Revenue questions are delegated to the Commercial Agent's `commercial.retention_review` (segment attribution, contraction and churn customers, CRM context; may propose internal CRM renewal tasks for approval); cost questions use `analytics.cost_drivers`. The outcome is one proposed Mission Control issue with up to three corrective actions carrying `analytics_ref`, then weekly monitoring until the exception clears. Agents read governed data only within `agent_configs.data_domains`; they never cancel contracts, change suppliers, cut headcount, commit spend or contact customers. See `docs/intelligence.md`.
+
 ## Known limitations
 
 * Agent workflows are deterministic; the only LLM use is the Integration Agent's playbook/plan/review drafting (Claude, opt-in per company, falling back to a labelled rule-based extractor) whose output is schema-validated and citation-checked before management sees it. Messages and proposals are templated from the evidence.

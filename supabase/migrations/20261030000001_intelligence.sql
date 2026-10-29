@@ -434,6 +434,13 @@ language sql stable security definer set search_path = '' as $$
   end;
 $$;
 
+-- The companies whose data in a domain the caller can read. Policies on the large governed
+-- tables compare against this once per statement (an init-plan) rather than per row.
+create or replace function app.domain_companies(dom text) returns uuid[]
+language sql stable security definer set search_path = '' as $$
+  select coalesce(array_agg(c.id), '{}') from public.companies c where app.can_read_domain(c.id, dom);
+$$;
+
 create or replace function app.can_read_intelligence(cid uuid) returns boolean
 language sql stable security definer set search_path = '' as $$
   select app.can_read_domain(cid, 'revenue') or app.can_read_domain(cid, 'cost') or app.can_read_domain(cid, 'people');
@@ -535,11 +542,11 @@ begin
   end loop;
   -- revenue domain
   foreach t in array array['ri_products','ri_customers','ri_arr_monthly','ri_movements','ri_contracts','ri_cohorts','ri_finance_recon'] loop
-    execute format('create policy %I on public.%I for select to authenticated using (app.can_read_domain(company_id, ''revenue''))', t || '_select', t);
+    execute format('create policy %I on public.%I for select to authenticated using (company_id = any ((select app.domain_companies(''revenue''))::uuid[]))', t || '_select', t);
   end loop;
   -- cost domain
   foreach t in array array['ci_accounts','ci_cost_centres','ci_suppliers','ci_ledger'] loop
-    execute format('create policy %I on public.%I for select to authenticated using (app.can_read_domain(company_id, ''cost''))', t || '_select', t);
+    execute format('create policy %I on public.%I for select to authenticated using (company_id = any ((select app.domain_companies(''cost''))::uuid[]))', t || '_select', t);
   end loop;
   -- per-row domain
   foreach t in array array['an_targets','an_dq_results','an_period_status','an_period_closes','an_restatements'] loop
@@ -552,8 +559,8 @@ begin
 end $$;
 
 create policy ci_transactions_select on public.ci_transactions for select to authenticated
-  using (app.can_read_domain(company_id, 'cost') and app.can_read_domain(company_id, 'transactions'));
-create policy ci_people_select on public.ci_people for select to authenticated using (app.can_read_domain(company_id, 'people'));
+  using (company_id = any ((select app.domain_companies('cost'))::uuid[]) and company_id = any ((select app.domain_companies('transactions'))::uuid[]));
+create policy ci_people_select on public.ci_people for select to authenticated using (company_id = any ((select app.domain_companies('people'))::uuid[]));
 
 create policy an_grants_select on public.an_grants for select to authenticated using (user_id = auth.uid() or app.can_admin(company_id) or app.can_approve_scorecard(company_id));
 create policy an_grants_insert on public.an_grants for insert to authenticated with check (app.can_admin(company_id) or app.can_approve_scorecard(company_id));
@@ -621,7 +628,7 @@ $$;
 create or replace function public.ri_movement_totals(p_company uuid, p_from date, p_to date, p_filters jsonb default '{}', p_group text default null)
 returns table (grp text, month date, type text, amount numeric, customers bigint)
 language sql stable security definer set search_path = public as $$
-  with cfg as (select (p_group = 'product' or p_filters ? 'product') as pg, public.an_arr(p_filters, 'product') as prods),
+  with cfg as (select coalesce(p_group = 'product' or p_filters ? 'product', false) as pg, public.an_arr(p_filters, 'product') as prods),
   base as (
     select case when p_group = 'product' then m.product_key else public.ri_group_key(c, p_group) end as grp,
            m.month, m.customer_id, m.type, m.amount
@@ -664,7 +671,7 @@ create or replace function public.ri_retention(p_company uuid, p_start date, p_e
 returns table (grp text, opening_arr numeric, opening_logos bigint, expansion numeric, contraction numeric, churn numeric, reactivation numeric,
                transfer numeric, migration numeric, adjustment numeric, end_arr numeric, end_logos bigint)
 language sql stable security definer set search_path = public as $$
-  with cfg as (select (p_group = 'product' or p_filters ? 'product') as pg, public.an_arr(p_filters, 'product') as prods),
+  with cfg as (select coalesce(p_group = 'product' or p_filters ? 'product', false) as pg, public.an_arr(p_filters, 'product') as prods),
   cust as (
     select c.id, public.ri_group_key(c, p_group) as g from public.ri_customers c
     where c.company_id = p_company and (select app.can_read_domain(p_company, 'revenue')) and public.ri_match(c, p_filters, p_start)
@@ -855,3 +862,27 @@ language sql stable security definer set search_path = '' as $$
   select array(select d from unnest(array['revenue', 'cost', 'people', 'transactions']) d where app.can_read_domain(p_company, d));
 $$;
 grant execute on function public.an_my_domains to authenticated;
+
+-- Fair claiming: with financial-variance investigations adding work, one busy company must not
+-- starve the others. Runs are taken round-robin across companies (each company's earliest first).
+create or replace function public.claim_agent_runs(p_worker text, p_limit int, p_lease_seconds int default 120, p_companies uuid[] default null) returns setof public.agent_runs
+language sql security definer set search_path = '' as $$
+  update public.agent_runs r set status = 'running', lease_owner = p_worker, lease_until = now() + make_interval(secs => p_lease_seconds),
+         attempts = r.attempts + 1, updated_at = now()
+  where r.id in (
+    select id from public.agent_runs
+    where id in (
+      select id from (
+        select id, row_number() over (partition by company_id order by run_after) as turn, run_after
+        from public.agent_runs
+        where ((status in ('queued', 'waiting') and run_after <= now())
+           or (status = 'running' and lease_until < now()))          -- crashed worker: resume
+          and (p_companies is null or company_id = any (p_companies)) -- a worker dedicated to some companies
+      ) due
+      order by turn, run_after
+      limit p_limit)
+    for update skip locked)
+  returning r.*;
+$$;
+revoke all on function public.claim_agent_runs(text, int, int, uuid[]) from public, authenticated, anon;
+grant execute on function public.claim_agent_runs(text, int, int, uuid[]) to service_role;

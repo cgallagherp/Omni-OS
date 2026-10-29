@@ -287,7 +287,7 @@ export default async function PortfolioPage() {
                           const c = r.cells[m.key];
                           if (!c) return <td key={m.key} className="px-2 text-right text-muted-foreground">—</td>;
                           // where companies measure this differently, show each figure under its own definition, unranked
-                          if (!comparableAcross(comparables, m.key)) return <td key={m.key} className="px-2 text-right text-muted-foreground italic" title={`${c.label} (${c.group ?? "company-specific"}) — a different methodology from the other companies, so not compared`}>{fmt(c.value, m.unit)}<span className="block text-[10.5px] not-italic">{c.label}, not comparable</span></td>;
+                          if (!comparableAcross(comparables, m.key)) return <td key={m.key} className="px-2 text-right text-muted-foreground italic" title={`${c.label} (${c.group ?? "company-specific"}) — a different methodology from the other companies, so not compared`}>{fmt(c.value, m.unit)}<span className="block text-[10.5px] not-italic">not comparable</span></td>;
                           return <td key={m.key} className="px-2 text-right">{fmt(c.value, m.unit)}</td>;
                         })}
                         <td className="px-4 text-xs text-muted-foreground">{r.synthetic ? "Synthetic" : "Governed"} · {r.period}</td>

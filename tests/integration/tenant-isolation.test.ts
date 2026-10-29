@@ -50,6 +50,13 @@ const TENANT_TABLES = [
   "audit_log",
 ] as const;
 
+const INTELLIGENCE_TABLES = [
+  "an_grants", "an_sources", "an_datasets", "an_metric_definitions", "an_dimensions", "an_targets", "ri_products", "ri_customers",
+  "ri_arr_monthly", "ri_movements", "ri_contracts", "ri_cohorts", "ri_finance_recon", "ci_accounts", "ci_cost_centres", "ci_suppliers",
+  "ci_ledger", "ci_transactions", "ci_people", "an_dq_results", "an_period_status", "an_period_closes", "an_restatements",
+  "an_saved_views", "an_exports",
+] as const;
+
 beforeAll(async () => {
   clinara = await companyId("clinara");
   kestrel = await companyId("kestrel");
@@ -73,6 +80,16 @@ describe("company users cannot read another company's records", () => {
     // sanity: the rows really exist
     const { count } = await admin.from(table).select("*", { count: "exact", head: true }).eq("company_id", kestrel);
     if (!["comments", "metric_links", "quarterly_resets", "north_star_versions"].includes(table)) expect(count).toBeGreaterThan(0);
+  });
+
+  // Revenue & Cost Intelligence governed tables (Civicline has the synthetic dataset)
+  it.each(INTELLIGENCE_TABLES)("returns no Civicline rows from %s to a Clinara executive", async (table) => {
+    const civicline = await companyId("civicline");
+    const { data, error } = await marcus.from(table).select("company_id").eq("company_id", civicline).limit(5);
+    expect(error).toBeNull();
+    expect(data).toEqual([]);
+    const { count } = await admin.from(table).select("*", { count: "exact", head: true }).eq("company_id", civicline);
+    if (!["an_saved_views", "an_exports", "an_restatements"].includes(table)) expect(count).toBeGreaterThan(0);
   });
 
   it("cannot fetch a Kestrel record by its id", async () => {
@@ -142,7 +159,7 @@ describe("Omni-only confidential information", () => {
     const tomCases = await tom.from("investment_cases").select("company_id");
     expect(tomCases.data?.map((c) => c.company_id)).toEqual([clinara]);
     const priyaCases = await priya.from("investment_cases").select("company_id");
-    expect(priyaCases.data?.length).toBe(3); // Clinara, Kestrel and Ashworth;
+    expect(priyaCases.data?.length).toBe(4); // Clinara, Kestrel, Ashworth and Civicline
   });
 
   it("Omni staff see only explicitly assigned companies", async () => {

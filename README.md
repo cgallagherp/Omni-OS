@@ -31,6 +31,9 @@ Sign in with any demo account (password `OmniDemo!2026`) — the login page list
 | marcus@clinara.demo, aisha@…, nadia@kestrel.demo, raj@ashworth.demo … | Executive | Own company |
 | helen@clinara.demo | Chair / Board observer (read-only) | Own company, no edits, no Monday scorecards |
 
+## Revenue & Cost Intelligence
+Native analytics modules under **Intelligence** — ARR bridge, GRR/NRR, cohorts, customers, cost drill-down to transactions, GP/EBITDA bridges — reading governed data through an adapter. The demo company **Civicline** (public-sector software) has 48 months of clearly labelled synthetic data: `hannah@civicline.demo` (CEO), `marcus.o@civicline.demo` (CFO, all domains), `sophie@civicline.demo` (CRO, revenue only), `ruth@civicline.demo` (Chair, none). See `docs/intelligence.md` and, for the Snowflake/dbt cut-over, `docs/intelligence-data-contracts.md`.
+
 ## Agents
 Five agents (Execution, CEO, Commercial, M&A sourcing, M&A Integration) run in a separate worker process. See `docs/agents.md` and `docs/integration.md`.
 ```bash
@@ -65,11 +68,16 @@ Branding needs no configuration: Omni's identity is the default, and each compan
 | ![KPI with a CEO Agent investigation](docs/screenshots/agents-kpi-investigation.png) | ![Agent requests inbox](docs/screenshots/agents-inbox.png) |
 | ![Integration playbook with sources](docs/screenshots/integration-playbook.png) | ![Acquisition-specific plan draft](docs/screenshots/integration-plan.png) |
 | ![Integration agent proposals](docs/screenshots/integration-approvals.png) | ![Escalated into Mission Control](docs/screenshots/integration-escalated.png) |
+| ![Revenue Intelligence overview](docs/screenshots/intelligence-revenue.png) | ![ARR bridge that reconciles](docs/screenshots/intelligence-arr-bridge.png) |
+| ![Cohort retention heatmap](docs/screenshots/intelligence-cohorts.png) | ![Cost Intelligence overview](docs/screenshots/intelligence-cost.png) |
+| ![GP and EBITDA bridges](docs/screenshots/intelligence-ebitda-bridge.png) | ![Portfolio comparison where definitions match](docs/screenshots/intelligence-portfolio.png) |
 
 ## Docs
 - `docs/product-spec.md` — what the product does
 - `docs/architecture.md` — routes, data model, security model
 - `docs/agents.md` — the agentic execution layer: agents, authority, engine, connections
 - `docs/integration.md` — the M&A Integration Agent: knowledge, playbooks, plans, execution, synergies, learning
+- `docs/intelligence.md` — Revenue & Cost Intelligence: modules, rules, permissions, agents
+- `docs/intelligence-data-contracts.md` — data contracts for the Snowflake/dbt governed source
 - `docs/implementation-plan.md` — milestones and status
 - `docs/decisions.md` — decision log and known limitations

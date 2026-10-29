@@ -60,7 +60,7 @@ async function sendWindow(rt: Runtime, toCrewId: string, critical: boolean): Pro
   const { data } = await rt.db.from("agent_messages").select("created_at, investigation_id").eq("company_id", rt.companyId).eq("agent_key", "integration").eq("to_crew_id", toCrewId).in("kind", ["followup", "reminder"]).gte("created_at", since).order("created_at", { ascending: false }).limit(1);
   const last = data?.[0];
   if (last && last.investigation_id !== rt.inv.id) {
-    const wait = critical ? 1 : cooldown;
+    const wait = critical ? Math.min(1, cooldown) : cooldown; // the critical path shortens the cooldown, never lengthens it
     const until = new Date(Date.parse(last.created_at) + wait * 86400000);
     if (until > rt.now) return until;
   }

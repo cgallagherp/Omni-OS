@@ -1,19 +1,7 @@
 import "server-only";
 import type { IntelligenceContext } from "@/lib/data/intelligence";
 import type { Domain } from "./contracts";
-
-const cell = (v: unknown) => {
-  if (v === null || v === undefined) return "";
-  const s = typeof v === "number" ? (Number.isInteger(v) ? String(v) : v.toFixed(2)) : String(v);
-  // neutralise spreadsheet formulas and quote
-  const safe = /^[=+\-@]/.test(s) && typeof v !== "number" ? `'${s}` : s;
-  return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-};
-
-export function csv(rows: Array<Record<string, unknown>>, columns?: string[]): string {
-  const cols = columns ?? [...new Set(rows.flatMap((r) => Object.keys(r)))];
-  return [cols.join(","), ...rows.map((r) => cols.map((c) => cell(r[c])).join(","))].join("\n") + "\n";
-}
+import { csv } from "./csv";
 
 /** Returns the CSV response after checking the domain and recording the export. */
 export async function exportResponse(i: IntelligenceContext, domain: Domain, dataset: string, params: string, rows: Array<Record<string, unknown>>, columns?: string[]) {
