@@ -43,6 +43,16 @@ Legend: ✅ implemented and covered by automated tests · 🟡 implemented, veri
 | Listening, First 100 days, Calendar & governance | ✅ |
 | Portfolio: Monday scorecards first, North Star progress, reporting compliance, offsites | ✅ |
 
+## Milestone 5 — M&A Integration Agent ✅
+| Item | Status |
+|---|---|
+| Knowledge: upload (PDF/Word/PPT/Excel/MD) and SharePoint/OneDrive/Google Drive import of selected files; extraction and chunks | ✅ connectors untested without credentials |
+| Generate Playbook with AI: structured, cited, established/inferred/recommended; conflicts and gaps; full editor; versions and approval | ✅ Claude path tested with a recorded response; rule-based fallback used here |
+| Multiple playbooks with "when to use" rules and a recommendation per acquisition | ✅ |
+| Acquisitions, M&A hand-over, Generate Integration Plan with explained deviations; plan approval materialises it | ✅ |
+| Autonomous monitoring: overdue, dependencies, critical path, approvals, evidence; follow-ups with hours/cooldowns; approved date changes and Mission Control escalations | ✅ E2E tested |
+| Synergies (verified actuals only), CEO Agent assessment, weekly status, learning loop with change proposals | ✅ |
+
 ## Not yet built / next steps
 - Integrations that populate `metric_values` (`source = 'integration'`) — data model is ready; no connectors yet.
 - Notifications (email/Slack) for overdue actions and escalations.

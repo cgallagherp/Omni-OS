@@ -67,7 +67,7 @@ async function live() {
       const hours = resolved.map((x) => (Date.parse(x.resolved_at!) - Date.parse(x.opened_at)) / 3600000);
       const failed = (runs ?? []).filter((x) => x.agent_key === k && x.status === "failed").length;
       const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)}%` : "—");
-      console.log(`  ${AGENTS[k].name.padEnd(17)} activity: ${i.length} cases, ${a.length} proposals, ${m.length} messages · quality: ${pct(accepted.length, decided.length)} of decided proposals accepted, ${pct(m.filter((x) => x.responded_at).length, m.length)} messages answered, ${failed} failed runs · results: ${resolved.length} resolved${hours.length ? `, median ${Math.round(hours.sort((x, y) => x - y)[Math.floor(hours.length / 2)])}h to resolve` : ""}`);
+      console.log(`  ${AGENTS[k].name.padEnd(22)} activity: ${i.length} cases, ${a.length} proposals, ${m.length} messages · quality: ${pct(accepted.length, decided.length)} of decided proposals accepted, ${pct(m.filter((x) => x.responded_at).length, m.length)} messages answered, ${failed} failed runs · results: ${resolved.length} resolved${hours.length ? `, median ${Math.round(hours.sort((x, y) => x - y)[Math.floor(hours.length / 2)])}h to resolve` : ""}`);
     }
   }
 }

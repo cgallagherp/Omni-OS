@@ -33,6 +33,7 @@ There is no separate API server. Reads happen in server components via `loadComp
 | `/c/[slug]/calendar` | Rolling 12-month calendar and investor governance tracker |
 | `/c/[slug]/onboarding` | First 100 days: operating cycle, timetable, milestones |
 | `/c/[slug]/assistant` | Operating analyst with source references; optional Claude narrative |
+| `/c/[slug]/integrations` (+ `knowledge`, `knowledge/[id]`, `playbooks`, `playbooks/[id]`, `[id]?tab=`) | M&A integration (leadership only): knowledge sources, AI-generated playbooks and their approval, acquisitions with plan, workstreams, critical path, synergies, issues and decisions, agent activity, timeline, documents and review — see `docs/integration.md` |
 | `/c/[slug]/settings` (+ `branding`) | Company profile and Flight Plan limits, access; Appearance & Branding |
 | `/brand/logo/[companyId]` | Company logo, read with the user's session (RLS); private cache, versioned URL |
 | `/admin` | Platform admin: Omni assignment matrix, template-based onboarding |
@@ -59,6 +60,9 @@ companies ─┬─ company_memberships (user, role: omni | ceo | company_admin 
            ├─ org_actions (critical_role | hire | structure | capability → priority / objective)
            ├─ quarterly_resets (offsite: stage notes, scorecard keep/drop, strategic issues, company update)
            ├─ dependencies, comments
+           ├─ knowledge_sources ─ knowledge_chunks · integration_playbooks (versioned, content JSON) · playbook_change_proposals
+           ├─ acquisitions ─ integration_plans · integration_workstreams ─ integration_activities ─ integration_dependencies
+           │     ─ integration_synergies ─ synergy_actuals · integration_reviews   (actions/issues.acquisition_id)
            ├─ investment_cases, omni_notes           ← Omni-only
            └─ audit_log                               ← trigger-only (logo bytes stripped)
 profiles (1:1 auth.users; platform_role: platform_admin | omni_team | null)
@@ -90,12 +94,15 @@ SQL helpers (`app.has_company_access / can_write / can_admin / is_omni_for / is_
 - `operating-system.ts` — operating cycle, 100-day template, governance template, deadlines.
 - `brand.ts`, `logo-image.ts` — colour derivation and contrast; logo validation.
 - `health.ts` — transparent execution score for portfolio ranking.
+- `integration.ts` — integration activity health (done ≠ verified complete), dependency risk, critical path, verified-only synergy realisation without double counting, playbook recommendation.
 
 ## Email
 `src/lib/email.ts` sends through Resend when `RESEND_API_KEY` and `EMAIL_FROM` are set. Every send is recorded in `email_outbox` with its status; without a provider the status is `not_configured` and recipients see the approved scorecard in Omni OS.
 
 ## AI assistant
 `src/lib/data/insights.ts` builds a **brief** from the RLS-scoped snapshot: facts (each with source ids that link to records) and rule-based suggestions, labelled separately. With `ANTHROPIC_API_KEY` set, `src/lib/actions/assistant.ts` sends only that brief to Claude (`claude-opus-5-5` by default, `ANTHROPIC_MODEL` to override; server-side refusal fallback enabled) with instructions to cite `[S#]` for every fact and keep recommendations in a separate section. Omni-only tables are never read by the brief, so tenant and confidentiality boundaries carry through.
+
+The M&A Integration Agent can also use Claude (`src/lib/integration/claude.ts`) to draft playbooks, plans and reviews from the company's selected documents — only where the company allows external AI for that agent. Output is structured (zod), every citation is checked against the supplied passages, and the draft still needs management approval; without a key a labelled rule-based extractor is used.
 
 ## Agents
 See `docs/agents.md`. `src/lib/agents/*`: registry (agents, tools, action categories and caps), runtime (step machine, tools, idempotent side effects, proposals), engine (signals, detectors, queue claiming, retries), workflows, pure analysis modules (`analysis/*`, unit-tested), connectors (channels, CRM, market sources, encrypted secrets). Tables: `agent_configs`, `integration_connections`, `integration_secrets`, `agent_investigations`, `agent_runs`, `agent_events`, `agent_approvals`, `agent_messages`, `agent_side_effects`, `agent_usage`, `agent_signals`, `crm_sandbox_*`, `ma_theses`, `ma_targets`, `ma_sandbox_companies` — all company-scoped with RLS (`app.can_see_agents` = leadership, Omni or the agent principal). The worker (`scripts/agents/worker.ts`) is a separate process.

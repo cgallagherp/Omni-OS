@@ -1,6 +1,6 @@
 # Agentic execution layer
 
-Four agents work inside the operating system — not beside it. They read the same North Star, Flight Plan, Crew and Mission Control records as people do, act only within the authority management delegates, and leave an auditable record of what they found, what they did, what needs a decision, and what happened as a result.
+Five agents work inside the operating system — not beside it. They read the same North Star, Flight Plan, Crew and Mission Control records as people do, act only within the authority management delegates, and leave an auditable record of what they found, what they did, what needs a decision, and what happened as a result.
 
 | Agent | Remit | Workflow (`src/lib/agents/workflows`) | Trigger |
 |---|---|---|---|
@@ -8,6 +8,7 @@ Four agents work inside the operating system — not beside it. They read the sa
 | CEO | Strategic performance and orchestration | `ceo.kpi_deviation`: read the KPI against the North Star and Flight Plan → findings, hypotheses, missing evidence → commission the Commercial Agent for commercial KPIs → propose an issue + agreed corrective action (approval) → apply → monitor recovery weekly | Key or scorecard KPI off track two reported periods running (28-day cooldown per KPI) |
 | Commercial | Pipeline, conversion, retention from the company's own CRM | `commercial.pipeline_review`: read CRM → stalled/slipped deals, segment, conversion, cycle, source → create follow-up tasks in the CRM (within authority) → measure task completion and re-engagement | Weekly when a CRM is connected; or commissioned by the CEO Agent |
 | M&A | Advance the approved acquisition thesis | `ma.sourcing`: search authorised sources → dedupe against the pipeline including rejected companies → transparent fit score (unknown financials stay unknown) → add the shortlist → prepare approaches for approval → hand approved drafts to the deal lead | Weekly per approved thesis |
+| M&A Integration | Post-acquisition integration from the company's own knowledge | `integration.generate_playbook` / `generate_plan` (drafts for management approval) · `integration.activity_watch`: overdue, dependency-at-risk, approval and unverified-completion cases → follow up → capture the reply → propose a date change and Mission Control escalation (approval) → track corrective actions to verified completion · `integration.synergy` · `integration.weekly_status` · `integration.review` (playbook change proposals) | Queued by a person (generation, review); change signals on activities, actions and synergy results; daily/weekly/monthly schedules. See `docs/integration.md` |
 
 People can also ask for any of these from the Agent Control Centre ("Ask to investigate"); dedupe keys match the automatic triggers so a manual request never duplicates a case in hand.
 
@@ -87,10 +88,11 @@ The worker uses the service role only to claim runs, mint agent tokens and decry
 * `tests/integration/agents-execution.test.ts` — Execution end to end (detect, follow up, reply, propose, approve, apply, monitor, resolve), approval gating, tenant isolation, authority caps, append-only ledger, crash-after-send recovery and lease expiry; CEO (KPI → proposal → scorecard unchanged until approval → apply → recovery recorded); Commercial (analysis, CEO delegation joins the case, exactly the approved tasks created once, follow-through measured); M&A (dedupe, rejected/excluded/out-of-region, unknown financials, approaches blocked until approval, hand-off to the deal lead, rejection respected).
 * `tests/unit/agents.test.ts` — authority caps and the pure analysis modules.
 * `tests/e2e/z-agents.spec.ts` — inbox reply and approval queue in a browser with a real worker.
+* M&A Integration Agent: `tests/integration/integration-agent.test.ts`, `tests/unit/integration.test.ts`, `tests/e2e/z-integration.spec.ts` (see `docs/integration.md`).
 
 ## Known limitations
 
-* Playbooks are deterministic; no LLM drafting is used. Messages and proposals are templated from the evidence.
+* Agent workflows are deterministic; the only LLM use is the Integration Agent's playbook/plan/review drafting (Claude, opt-in per company, falling back to a labelled rule-based extractor) whose output is schema-validated and citation-checked before management sees it. Messages and proposals are templated from the evidence.
 * Email/Outlook, HubSpot and Companies House connectors are implemented against official APIs but untested without credentials. OAuth flows are not built: admins paste an access token. Token refresh is not handled.
 * Delegation joins an existing specialist case; a case has one parent.
 * The CEO Agent's materiality rule (two consecutive off-track periods, or more than 10% adverse) and the Commercial staleness threshold (21 days) are fixed, not configurable.
