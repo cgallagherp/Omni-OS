@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AnalyticsRefLink } from "@/components/intelligence/ref-link";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BarChart3, CalendarClock, Gavel, ListChecks, ListPlus, Pencil } from "lucide-react";
@@ -64,6 +65,7 @@ export default async function IssuePage({ params }: { params: Promise<{ slug: st
           </div>
           <h1 className="mt-1.5 text-xl font-semibold tracking-tight text-balance">{issue.title}</h1>
           {issue.description && <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{issue.description}</p>}
+          {issue.analytics_ref && <AnalyticsRefLink value={issue.analytics_ref} className="mt-2" />}
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">Owner <Owner person={snap.crewById.get(issue.owner_id)} /></span>
             {issue.raised_by_id && <span>Raised by {snap.crewById.get(issue.raised_by_id)?.full_name}</span>}

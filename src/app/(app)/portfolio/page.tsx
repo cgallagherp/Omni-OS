@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { comparableAcross, portfolioComparables, PORTFOLIO_METRICS } from "@/lib/analytics/portfolio";
+import { fmt } from "@/lib/analytics/format";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertTriangle, ArrowRight, CalendarClock, Flag, Mail } from "lucide-react";
@@ -46,6 +48,7 @@ export default async function PortfolioPage() {
   // The most recent approved Monday scorecard for each company (in-app delivery to Omni).
   const scorecards = snaps.map((s) => ({ s, latest: s.sentScorecards.find((w) => w.approved_at) ?? null }));
   // Integrations across the portfolio (Omni sees each company's integrations it is assigned to)
+  const comparables = await portfolioComparables(supabase, snaps.map((s) => ({ id: s.company.id, name: s.company.name, slug: s.company.slug })));
   const integrations = (await Promise.all(snaps.map(async (s) => ({ s, home: await loadIntegrationHome(supabase, s.company.id) })))).flatMap(({ s, home }) => home.rows.filter((r) => !["completed", "cancelled"].includes(r.a.status)).map((r) => ({ s, r })));
 
   return (
@@ -264,6 +267,38 @@ export default async function PortfolioPage() {
               );
             })}
           </div>
+
+          {comparables.length > 0 && (
+            <Card className="mt-5" data-testid="portfolio-intelligence">
+              <CardHeader>
+                <CardTitle>Comparable financial and retention metrics</CardTitle>
+                <span className="text-xs text-muted-foreground">Governed data only; compared only where definitions match</span>
+              </CardHeader>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[13px] whitespace-nowrap tabular">
+                  <thead className="border-b text-[11px] text-muted-foreground">
+                    <tr><th className="px-4 py-2 text-left font-medium">Company</th>{PORTFOLIO_METRICS.map((m) => <th key={m.key} className="px-2 text-right font-medium">{m.label}</th>)}<th className="px-4 text-left font-medium">Data</th></tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {comparables.map((r) => (
+                      <tr key={r.companyId}>
+                        <td className="px-4 py-2 font-medium"><Link href={`/c/${r.slug}/revenue`} className="hover:underline">{r.name}</Link></td>
+                        {PORTFOLIO_METRICS.map((m) => {
+                          const c = r.cells[m.key];
+                          if (!c) return <td key={m.key} className="px-2 text-right text-muted-foreground">—</td>;
+                          // where companies measure this differently, show each figure under its own definition, unranked
+                          if (!comparableAcross(comparables, m.key)) return <td key={m.key} className="px-2 text-right text-muted-foreground italic" title={`${c.label} (${c.group ?? "company-specific"}) — a different methodology from the other companies, so not compared`}>{fmt(c.value, m.unit)}<span className="block text-[10.5px] not-italic">{c.label}, not comparable</span></td>;
+                          return <td key={m.key} className="px-2 text-right">{fmt(c.value, m.unit)}</td>;
+                        })}
+                        <td className="px-4 text-xs text-muted-foreground">{r.synthetic ? "Synthetic" : "Governed"} · {r.period}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="px-4 pb-3 text-xs text-muted-foreground">Companies without a governed data source are not shown. Retention for services businesses (contract value retention) is not compared with software GRR/NRR.</p>
+            </Card>
+          )}
 
           {integrations.length > 0 && (
             <Card className="mt-5" data-testid="portfolio-integrations">

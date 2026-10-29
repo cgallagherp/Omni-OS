@@ -139,11 +139,14 @@ async function runDetectors(admin: Db, companyIds: string[], dirty: Set<string>,
     if (!dirty.has(cid) && now.getTime() - last < 15 * 60000) continue;
     lastDetection.set(cid, now.getTime());
     const userId = await principalFor(admin, cid);
-    const db = agentClient(userId);
-    const configs = await loadConfigs(db, cid);
+    const configs = await loadConfigs(agentClient(userId), cid);
+    const clients = new Map<AgentKey, Db>();
     for (const d of DETECTORS) {
       const cfg = configs.get(d.agent);
       if (!cfg?.enabled || cfg.schedules[d.schedule]?.enabled === false) continue;
+      // each detector runs as its own agent, with that agent's data domains
+      if (!clients.has(d.agent)) clients.set(d.agent, agentClient(userId, d.agent));
+      const db = clients.get(d.agent)!;
       try {
         const opened = await d.detect({ db, companyId: cid, config: cfg, now });
         report.opened += opened;
@@ -174,7 +177,7 @@ export async function tick(o: TickOptions): Promise<TickReport> {
 
 async function executeRun(admin: Db, run: RunRow, now: Date, maxSteps: number, report: TickReport, log?: (m: string) => void): Promise<number> {
   const userId = await principalFor(admin, run.company_id);
-  const db = agentClient(userId);
+  const db = agentClient(userId, run.agent_key);
   const wf: WorkflowDef | undefined = WORKFLOWS[run.workflow];
   const { data: inv } = await db.from("agent_investigations").select("*").eq("company_id", run.company_id).eq("id", run.investigation_id).maybeSingle();
   if (!wf || !inv) {

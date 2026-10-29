@@ -22,17 +22,20 @@ export function serviceClient(): Db {
 const b64url = (b: Buffer | string) => Buffer.from(b).toString("base64url");
 
 /** HS256 JWT for the agent principal, valid for `ttlSeconds`. */
-export function mintAgentJwt(userId: string, ttlSeconds = 600): string {
+export function mintAgentJwt(userId: string, ttlSeconds = 600, agentKey?: string): string {
   const now = Math.floor(Date.now() / 1000);
   const header = b64url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const payload = b64url(JSON.stringify({ sub: userId, role: "authenticated", aud: "authenticated", iat: now, exp: now + ttlSeconds, iss: "omni-os-agent-worker", is_agent: true }));
+  const payload = b64url(JSON.stringify({ sub: userId, role: "authenticated", aud: "authenticated", iat: now, exp: now + ttlSeconds, iss: "omni-os-agent-worker", is_agent: true, ...(agentKey ? { agent_key: agentKey } : {}) }));
   const sig = createHmac("sha256", env("SUPABASE_JWT_SECRET")).update(`${header}.${payload}`).digest("base64url");
   return `${header}.${payload}.${sig}`;
 }
 
-/** A Supabase client acting as the company's agent principal (RLS applies). */
-export function agentClient(userId: string): Db {
-  const token = mintAgentJwt(userId);
+/**
+ * A Supabase client acting as the company's agent principal (RLS applies). The token names
+ * the acting agent, so governed analytical data is limited to the domains management gave it.
+ */
+export function agentClient(userId: string, agentKey?: string): Db {
+  const token = mintAgentJwt(userId, 600, agentKey);
   return createClient<Database>(env("NEXT_PUBLIC_SUPABASE_URL"), env("NEXT_PUBLIC_SUPABASE_ANON_KEY"), {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${token}` } },

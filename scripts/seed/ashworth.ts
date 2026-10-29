@@ -1,7 +1,7 @@
 // Company C — Ashworth Analytics: data and analytics services for UK retailers.
 // Acquired 38 days ago and part-way through the first 100 days. It has not
 // personalised its workspace, so it keeps the Omni identity.
-import { TODAY, addDays, at, iso, lastWeekday, type CompanySpec, type SeriesCtx } from "./lib";
+import { TODAY, addDays, at, iso, lastWeekday, type CompanySpec } from "./lib";
 import { intelligenceFor } from "./intelligence";
 
 // Revenue and EBITDA come from the (synthetic) governed finance data, as they will from the

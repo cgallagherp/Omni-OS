@@ -9,6 +9,7 @@ import { isoWeek } from "./manual";
 import type { Db } from "./principal";
 import { ACTIVE_STATUSES, type AgentConfig, type AgentKey } from "./registry";
 import { openInvestigation } from "./engine";
+import { currentExceptions } from "@/lib/analytics/exception-lookup";
 
 export interface DetectorCtx {
   db: Db;
@@ -74,8 +75,11 @@ export const kpiExceptions: Detector = {
   async detect({ db, companyId, now }) {
     const snap = await loadCompanySnapshot(db as never, companyId, now);
     if (!snap) return 0;
+    // KPIs bound to governed metrics are investigated through their governed exceptions instead
+    const { data: governed } = await db.from("an_sources").select("company_id").eq("company_id", companyId).maybeSingle();
     const material = snap.metrics.filter((v) => {
       if (!(v.metric.is_key || v.metric.in_weekly_scorecard)) return false;
+      if (governed && (v.metric as { analytics_metric_key?: string | null }).analytics_metric_key) return false;
       const reported = v.points.filter((p) => p.value !== null);
       return reported.length >= 2 && reported.slice(-2).every((p) => p.status === "off_track");
     });
@@ -250,4 +254,37 @@ export const integrationStatus: Detector = {
   },
 };
 
-export const DETECTORS: Detector[] = [overdueActions, kpiExceptions, pipelineReview, marketScan, integrationWatch, synergyMonitor, integrationStatus];
+const lastFinancial = new Map<string, number>();
+/** CEO Agent: material (high or critical) exceptions in governed revenue and cost data. */
+export const financialVariance: Detector = {
+  agent: "ceo",
+  schedule: "financial_variance",
+  async detect({ db, companyId, now }) {
+    const last = lastFinancial.get(companyId) ?? 0;
+    if (now.getTime() - last < 6 * 3600_000) return 0;
+    lastFinancial.set(companyId, now.getTime());
+    const { data: co } = await db.from("companies").select("slug").eq("id", companyId).single();
+    if (!co) return 0;
+    const { data: src } = await db.from("an_sources").select("company_id").eq("company_id", companyId).maybeSingle();
+    if (!src) return 0;
+    const exceptions = (await currentExceptions(db, companyId, co.slug)).filter((e) => e.severity !== "medium");
+    // one case per exception: none while one is live or closed in the last 28 days
+    const since = new Date(now.getTime() - 28 * 86400000).toISOString();
+    const { data: prior } = await db.from("agent_investigations").select("dedupe_key, status, updated_at").eq("company_id", companyId).like("dedupe_key", "analytics:%");
+    const blocked = new Set((prior ?? []).filter((p) => ACTIVE_STATUSES.includes(p.status as never) || p.updated_at >= since).map((p) => p.dedupe_key.split(":").slice(1, -1).join(":")));
+    let opened = 0;
+    for (const e of exceptions) {
+      if (opened >= 2) break;
+      if (blocked.has(e.key)) continue;
+      const r = await openInvestigation(db, {
+        companyId, agent: "ceo", workflow: "ceo.financial_variance", title: e.title.slice(0, 300), dedupeKey: `analytics:${e.key}:${e.period}`,
+        subjectType: "analytics_exception", severity: e.severity === "critical" ? "critical" : "high",
+        trigger: { type: "event", summary: `Governed data: ${e.title}`, exception_key: e.key, exception: e },
+      });
+      if (r.created) opened += 1;
+    }
+    return opened;
+  },
+};
+
+export const DETECTORS: Detector[] = [overdueActions, kpiExceptions, financialVariance, pipelineReview, marketScan, integrationWatch, synergyMonitor, integrationStatus];

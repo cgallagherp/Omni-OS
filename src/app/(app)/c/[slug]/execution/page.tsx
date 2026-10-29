@@ -18,6 +18,7 @@ import { ActionCheckbox } from "@/components/execution/action-checkbox";
 import { cn } from "@/lib/utils";
 import { loadAgentWork } from "@/lib/data/agents";
 import { AgentMarker } from "@/components/agents/agent-notice";
+import { AnalyticsRefChip } from "@/components/intelligence/ref-link";
 
 export const metadata: Metadata = { title: "Issues & Actions" };
 
@@ -137,6 +138,7 @@ export default async function ExecutionPage({ params, searchParams }: { params: 
                         <p className={cn("flex flex-wrap items-center gap-2 text-[13.5px]", a.status !== "open" && "text-muted-foreground line-through")}>
                           {a.title}
                           {a.status === "open" && <AgentMarker slug={slug} items={agentWork.bySubject.get(a.id)} />}
+                          <AnalyticsRefChip value={a.analytics_ref} />
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
                           {p && (

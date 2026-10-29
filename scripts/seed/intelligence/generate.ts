@@ -666,12 +666,12 @@ export function generate(pr: Profile, today = new Date()): Generated {
     if (!c.crm_id || sumArrAt(endSnap, c.id) === 0) continue;
     const ct = contracts.find((x) => x.customer_id === c.id);
     crmAccounts.push({ external_id: c.crm_id, name: c.name, segment: inconsistent.includes(c) ? "local_authority" : c.sector, owner_name: c.account_owner, arr: sumArrAt(endSnap, c.id), health: health(c), renewal_date: ct?.renewal_date ?? null });
-    if (ct?.renewal_date && monthsBetween(end, ct.renewal_date) <= 6) {
-      const ageDays = Math.floor(r() * 50);
+    if (ct?.renewal_date && monthsBetween(end, ct.renewal_date) <= 8) {
+      const ageDays = Math.floor(r() * 12); // renewals are actively worked
       opps.push({
         external_id: `OPP-${oppN++}`, account_external_id: c.crm_id, name: `${c.name} — renewal`, stage: pick(r, ["Renewal: discovery", "Renewal: proposal", "Renewal: negotiation"]),
         amount: sumArrAt(endSnap, c.id), segment: c.sector, source: "Renewal", owner_name: c.account_owner,
-        created_on: addDaysIso(end, -90), close_date: ct.renewal_date, last_activity_on: addDaysIso(addMonths(end, 1), -ageDays),
+        created_on: addDaysIso(end, -90), close_date: ct.renewal_date, last_activity_on: addDaysIso(today.toISOString().slice(0, 10), -ageDays),
       });
     }
   }

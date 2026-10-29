@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
+import { currentExceptions } from "@/lib/analytics/exception-lookup";
 import Link from "next/link";
-import { Combine, AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Mail } from "lucide-react";
+import { Combine, LineChart, AlertTriangle, ArrowRight, CalendarClock, CheckCircle2, Mail } from "lucide-react";
 import { getCompanyContext } from "@/lib/auth";
 import { loadIntegrationHome } from "@/lib/data/integration";
 import { HealthBadge } from "@/components/integration/ui";
@@ -34,6 +35,10 @@ export default async function MissionControlPage({ params }: { params: Promise<{
   // Integration exceptions only: routine integration tasks stay in the Integrations module
   const integ = ["omni", "ceo", "company_admin", "executive"].includes(ctx.company.role) ? await loadIntegrationHome(ctx.supabase, ctx.company.companyId) : null;
   const integrationExceptions = (integ?.rows ?? []).filter((r) => (r.a.status === "active" && (r.sum.health === "off_track" || r.sum.health === "at_risk" || [...r.assessed.values()].some((x) => x.status === "off_track"))) || r.a.status === "plan_in_review");
+  // Material exceptions in governed revenue and cost data (only the domains this person may see)
+  const financial = (await currentExceptions(ctx.supabase, ctx.company.companyId, slug).catch(() => [])).filter((e) => e.severity !== "medium");
+  const { data: raised } = financial.length ? await ctx.supabase.from("issues").select("id, analytics_ref").eq("company_id", ctx.company.companyId).neq("status", "resolved").not("analytics_ref", "is", null) : { data: [] };
+  const issueFor = new Map((raised ?? []).map((r) => [(r.analytics_ref as { exception_key?: string } | null)?.exception_key ?? "", r.id]));
   const attention = attentionOf(s);
   const today = s.now.toISOString().slice(0, 10);
   const weekEnd = new Date(s.now.getTime() + 7 * 86400000).toISOString().slice(0, 10);
@@ -101,6 +106,23 @@ export default async function MissionControlPage({ params }: { params: Promise<{
                 </Link>
               );
             })}
+          </div>
+        </Card>
+      )}
+
+      {financial.length > 0 && (
+        <Card data-testid="mc-financial">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-1.5"><LineChart className="size-4 text-muted-foreground" /> Revenue and cost exceptions</CardTitle>
+            <span className="text-xs text-muted-foreground">From governed data</span>
+          </CardHeader>
+          <div className="divide-y">
+            {financial.map((e) => (
+              <div key={e.key} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+                <Link href={e.href} className="min-w-0 flex-1 text-[13px] hover:underline"><span className="font-medium">{e.title}</span> <span className="text-muted-foreground">— {e.domain === "revenue" ? "Revenue" : "Cost"} Intelligence</span></Link>
+                {issueFor.get(e.key) ? <Link href={`${base}/execution/issue/${issueFor.get(e.key)}`} className="text-xs text-brand-ink hover:underline">Issue raised →</Link> : <span className="text-xs text-muted-foreground">No issue yet</span>}
+              </div>
+            ))}
           </div>
         </Card>
       )}

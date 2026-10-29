@@ -20,8 +20,8 @@ export const delegate = defineTool({
   name: "agents.delegate",
   description: "Commission a specialist agent to investigate part of the problem.",
   sideEffect: "internal",
-  input: z.object({ to: z.enum(["commercial", "execution", "ma"]), workflow: z.string(), title: z.string().min(5).max(300), question: z.string().min(5).max(1000), subjectType: z.string().optional(), subjectId: z.string().uuid().optional() }),
-  run: async (rt, i: { to: AgentKey; workflow: string; title: string; question: string; subjectType?: string; subjectId?: string }) => {
+  input: z.object({ to: z.enum(["commercial", "execution", "ma"]), workflow: z.string(), title: z.string().min(5).max(300), question: z.string().min(5).max(1000), subjectType: z.string().optional(), subjectId: z.string().uuid().optional(), context: z.record(z.string(), z.unknown()).optional() }),
+  run: async (rt, i: { to: AgentKey; workflow: string; title: string; question: string; subjectType?: string; subjectId?: string; context?: Record<string, unknown> }) => {
     if (!AGENTS[rt.agent].delegatesTo.includes(i.to)) throw new ToolError(`${AGENTS[rt.agent].name} may not commission the ${AGENTS[i.to].name}`);
     const { data: cfg } = await rt.db.from("agent_configs").select("enabled").eq("company_id", rt.companyId).eq("agent_key", i.to).maybeSingle();
     if (!cfg?.enabled) return { delegated: false as const, reason: `${AGENTS[i.to].name} is switched off` };
@@ -37,7 +37,7 @@ export const delegate = defineTool({
     const r = await openInvestigation(rt.db, {
       companyId: rt.companyId, agent: i.to, workflow: i.workflow, title: i.title, dedupeKey: `delegated:${rt.inv.id}:${i.to}`,
       subjectType: i.subjectType, subjectId: i.subjectId, parentId: rt.inv.id,
-      trigger: { type: "delegation", summary: `Commissioned by the ${AGENTS[rt.agent].name}: ${i.question}`, from: rt.agent, parent_id: rt.inv.id },
+      trigger: { ...(i.context ?? {}), type: "delegation", summary: `Commissioned by the ${AGENTS[rt.agent].name}: ${i.question}`, from: rt.agent, parent_id: rt.inv.id },
     });
     return { delegated: true as const, childId: r.id };
   },
